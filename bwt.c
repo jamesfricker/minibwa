@@ -88,7 +88,7 @@ void mb_bwt_destroy(mb_bwt_t *bwt)
 
 mb_bwt_t *mb_bwt_init_from_raw(const uint32_t *raw, uint64_t len, uint64_t primary)
 {
-	uint64_t bwt_len, occ_len, c[4], x[4], i, j, k, i0;
+	uint64_t bwt_len, occ_len, c[4], x[4], i, k;
 	mb_bwt_t *bwt;
 
 	bwt = mb_bwt_init();
@@ -110,11 +110,9 @@ mb_bwt_t *mb_bwt_init_from_raw(const uint32_t *raw, uint64_t len, uint64_t prima
 			memcpy(&bwt->bwt[k], c, 32);
 			k += 4;
 			memset(x, 0, 32);
-			i0 = i;
 		}
-		j = i - i0;
 		++c[a];
-		x[j>>5] |= (uint64_t)a << ((j&0x1f)<<1);
+		x[(i&0x7f)>>5] |= (uint64_t)a << ((i&0x1f)<<1); // compatible with little endian
 	}
 	// the last block
 	memcpy(&bwt->bwt[k], x, 32);
@@ -145,15 +143,19 @@ void mb_bwt_rank1a(const mb_bwt_t *bwt, uint64_t k, uint64_t cnt[4])
 	const uint64_t *p;
 	uint32_t x, tmp;
 
+	if (k == 0) {
+		memset(cnt, 0, 4 * sizeof(uint64_t));
+		return;
+	}
+	--k;
 	k -= (k >= bwt->primary); // because $ is not in bwt
 	p = bwt_block(bwt, k);
 	memcpy(cnt, p, 4 * sizeof(uint64_t));
-	p += 4; // skip the count array
-	q = (const uint32_t*)p; // 8 32-bit integers in each block
+	q = (const uint32_t*)(p + 4); // 8 32-bit integers in each block
 	end = q + ((k&0x7f) >> 4);
-	for (x = 0; q < end; ++q) x += rank_aux4(bwt, *q);
-	tmp = *q >> ((~k&15)<<1);
-	x += rank_aux4(bwt, tmp) - (~k&15);
+	for (x = 0; q < end; ++q) x += rank_aux4(bwt, *q); // NB: this assumes little endian
+	tmp = *q << ((~k&0xf) << 1);
+	x += rank_aux4(bwt, tmp) - (~k&0xf);
 	cnt[0] += x&0xff, cnt[1] += x>>8&0xff, cnt[2] += x>>16&0xff, cnt[3] += x>>24;
 }
 /*
