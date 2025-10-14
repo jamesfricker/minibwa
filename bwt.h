@@ -30,9 +30,12 @@ typedef struct { size_t n, m; mb_sai_t *a; } mb_sai_v;
 extern "C" {
 #endif
 
+extern int mb_verbose;
+
 mb_bwt_t *mb_bwt_init(void);
 void mb_bwt_destroy(mb_bwt_t *bwt);
 mb_bwt_t *mb_bwt_load_raw(const char *fn); // from raw bwt_gen.c output
+void mb_bwt_save(const char *fn, const mb_bwt_t *bwt);
 
 uint64_t mb_bwt_rank11(const mb_bwt_t *bwt, uint64_t k, uint8_t c);
 void mb_bwt_rank1a(const mb_bwt_t *bwt, uint64_t k, uint64_t cnt[4]);

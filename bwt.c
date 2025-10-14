@@ -31,6 +31,8 @@
 #include "kalloc.h"
 #include "bwt.h"
 
+int mb_verbose = 3;
+
 /**********
  * Macros *
  **********/

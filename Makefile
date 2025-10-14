@@ -4,7 +4,7 @@ CFLAGS=		-std=c99 -g -Wall -O3
 CXXFLAGS=	$(CFLAGS)
 CPPFLAGS=
 INCLUDES=
-OBJS=		utils.o kalloc.o bwt.o
+OBJS=		utils.o kalloc.o sys.o bwt.o
 PROG=		minibwa
 LIBS=		-lpthread -lz -lm
 
@@ -24,7 +24,7 @@ all:$(PROG)
 libminibwa.a:$(OBJS)
 		$(AR) -csru $@ $(OBJS)
 
-minibwa:test-bwt.o libminibwa.a
+minibwa:main.o libminibwa.a
 		$(CC) $(CFLAGS) $< -o $@ -L. -lminibwa $(LIBS)
 
 clean:
