@@ -19,7 +19,7 @@ static void l2b_format_seq(uint64_t len, char *seq, uint64_t *rng)
 	}
 }
 
-static void l2b_add_seq(l2b_t *l2b, uint64_t len, const uint8_t *seq, const char *name, const char *comm, uint64_t *rng)
+static void l2b_add_seq(l2b_t *l2b, uint64_t len, const char *seq, const char *name, const char *comm, uint64_t *rng)
 {
 	uint64_t i, ambi_len, mask_len, off, m_pac_old;
 	l2b_ctg_t *ctg;
@@ -40,7 +40,7 @@ static void l2b_add_seq(l2b_t *l2b, uint64_t len, const uint8_t *seq, const char
 		memset(&l2b->pac[m_pac_old], 0, (l2b->m_pac - m_pac_old) * 8);
 
 	for (i = 0, ambi_len = mask_len = 0; i < len; ++i) {
-		uint64_t c = seq[i], x = off + i;
+		uint64_t c = (uint8_t)seq[i], x = off + i;
 		if (c & 1<<3) { // soft-masked base
 			++mask_len;
 		} else if (mask_len > 0) {
@@ -106,7 +106,7 @@ l2b_t *l2b_import(const char *fn, uint64_t seed)
 	l2b = hl_calloc(l2b_t, 1);
 	while (kseq_read(ks) >= 0) {
 		l2b_format_seq(ks->seq.l, ks->seq.s, &rng);
-		l2b_add_seq(l2b, ks->seq.l, (uint8_t*)ks->seq.s, ks->name.s, ks->comment.l? ks->comment.s : 0, &rng);
+		l2b_add_seq(l2b, ks->seq.l, ks->seq.s, ks->name.s, ks->comment.l? ks->comment.s : 0, &rng);
 	}
 	kseq_destroy(ks);
 	gzclose(fp);
@@ -201,5 +201,39 @@ l2b_t *l2b_load(const char *fn)
 	return l2b;
 load_failure:
 	l2b_destroy(l2b);
+	return 0;
+}
+
+int l2b_save_pac(const char *fn, const l2b_t *l2b, int both_strand)
+{
+	FILE *fp;
+	uint64_t n_pac, x;
+	int64_t i;
+	uint8_t *pac, ct;
+
+	fp = fn == 0 || strcmp(fn, "-") == 0? stdout : fopen(fn, "wb");
+	if (fp == 0) return -1;
+
+	// fill pac[]
+	n_pac = ((both_strand? l2b->tot_len * 2 : l2b->tot_len) + 3) / 4;
+	pac = hl_calloc(uint8_t, n_pac);
+	for (i = 0, x = 0; i < l2b->tot_len; ++i, ++x)
+		pac[x>>2] |= l2b_get0(l2b, i) << (~x&3) * 2;
+	if (both_strand)
+		for (i = l2b->tot_len - 1; i >= 0; --i, ++x)
+			pac[x>>2] |= (3 - l2b_get0(l2b, i)) << (~x&3) * 2;
+
+	// write pac
+	fwrite(pac, 1, (x>>2) + ((x&3) == 0? 0 : 1), fp);
+	// the following codes make the pac file size always (x/4+1+1)
+	if (x % 4 == 0) {
+		ct = 0;
+		fwrite(&ct, 1, 1, fp);
+	}
+	ct = x % 4;
+	fwrite(&ct, 1, 1, fp);
+
+	fclose(fp);
+	free(pac);
 	return 0;
 }

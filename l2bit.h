@@ -33,7 +33,13 @@ extern "C" {
 l2b_t *l2b_import(const char *fn, uint64_t seed);
 l2b_t *l2b_load(const char *fn);
 int l2b_save(const char *fn, const l2b_t *l2b);
+int l2b_save_pac(const char *fn, const l2b_t *l2b, int both_strand);
 void l2b_destroy(l2b_t *l2b);
+
+static inline int l2b_get0(const l2b_t *l2b, uint64_t i)
+{
+	return l2b->pac[i>>5] >> ((i&31)<<1) & 3;
+}
 
 #ifdef __cplusplus
 }

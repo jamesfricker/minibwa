@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 	int ret = 0;
 	mb_realtime();
 	if (argc == 1) return usage(stdout);
-	else if (strcmp(argv[1], "fa2bit") == 0) return main_fa2bit(argc-1, argv+1);
+	else if (strcmp(argv[1], "fa2bit") == 0) ret = main_fa2bit(argc-1, argv+1);
 	else if (strcmp(argv[1], "raw2bwt") == 0) ret = main_raw2bwt(argc-1, argv+1);
 	else if (strcmp(argv[1], "test") == 0) ret = main_test(argc-1, argv+1);
 	else if (strcmp(argv[1], "version") == 0) {
@@ -53,18 +53,28 @@ int main(int argc, char *argv[])
 int main_fa2bit(int argc, char *argv[])
 {
 	l2b_t *l2b;
+	int out_pac = 0, both_strand = 0;
 	uint64_t seed = 11;
 	ketopt_t o = KETOPT_INIT;
 	int c;
-	while ((c = ketopt(&o, argc, argv, 1, "s:", 0)) >= 0) {
+	while ((c = ketopt(&o, argc, argv, 1, "s:p2", 0)) >= 0) {
 		if (c == 's') seed = atol(o.arg);
+		else if (c == 'p') out_pac = 1;
+		else if (c == '2') both_strand = 1;
 	}
 	if (argc - o.ind < 2) {
-		fprintf(stderr, "Usage: minibwa fa2bit [-s %lu] <in.fa> <out.l2b>\n", (unsigned long)seed);
+		fprintf(stderr, "Usage: minibwa fa2bit [options] <in.fa> <out.l2b>\n");
+		fprintf(stderr, "Options:\n");
+		fprintf(stderr, "  -s INT    random seed [%lu]\n", (unsigned long)seed);
+		fprintf(stderr, "  -p        output the BWA pac format\n");
+		fprintf(stderr, "  -2        output both strands (effective with -p)\n");
 		return 1;
 	}
 	l2b = l2b_import(argv[o.ind], seed);
-	l2b_save(argv[o.ind+1], l2b);
+	if (out_pac)
+		l2b_save_pac(argv[o.ind+1], l2b, both_strand);
+	else
+		l2b_save(argv[o.ind+1], l2b);
 	l2b_destroy(l2b);
 	return 0;
 }
