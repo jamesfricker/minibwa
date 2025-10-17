@@ -166,7 +166,7 @@ int main_gensa(int argc, char *argv[])
 int main_index(int argc, char *argv[])
 {
 	ketopt_t o = KETOPT_INIT;
-	int c, use_sais = 0, n_thread = 4, sa_bit = 5;
+	int c, low_mem = 0, n_thread = 4, sa_bit = 5;
 	int64_t block_size = 10000000;
 	uint64_t seed = 11;
 	char *prefix, *fn_l2b, *fn_bwt;
@@ -174,7 +174,7 @@ int main_index(int argc, char *argv[])
 	mb_bwt_t *bwt;
 
 	while ((c = ketopt(&o, argc, argv, 1, "ls:u:b:t:", 0)) >= 0) {
-		if (c == 'l') use_sais = 1;
+		if (c == 'l') low_mem = 1;
 		else if (c == 't') n_thread = atoi(o.arg);
 		else if (c == 'b') block_size = kom_parse_num(o.arg, 0);
 		else if (c == 'u') sa_bit = atoi(o.arg);
@@ -184,11 +184,11 @@ int main_index(int argc, char *argv[])
 		fprintf(stderr, "Usage: minibwa index [options] <in.fasta> <out.prefix>\n");
 		fprintf(stderr, "Options:\n");
 		fprintf(stderr, "  -s INT    random seed for amibiguous bases [%ld]\n", (unsigned long)seed);
-		fprintf(stderr, "  -l        use libsais for BWT construction\n");
+		fprintf(stderr, "  -l        use the old low-memory algorithm for BWT construction\n");
 		fprintf(stderr, "  -u INT    SA sample rate at 1/(1<<INT) [%d]\n", sa_bit);
-		fprintf(stderr, "  -b NUM    block size (effective w/o -l) [10m]\n");
+		fprintf(stderr, "  -b NUM    block size (effective with -l) [10m]\n");
 #ifdef LIBSAIS_OPENMP
-		fprintf(stderr, "  -t INT    number of threads (effective with -l) [%d]\n", n_thread);
+		fprintf(stderr, "  -t INT    number of threads (effective w/o -l) [%d]\n", n_thread);
 #endif
 		return 1;
 	}
@@ -201,7 +201,7 @@ int main_index(int argc, char *argv[])
 
 	l2b = l2b_import(argv[o.ind], seed);
 	kom_assert(l2b, "failed to read the genome FASTA.");
-	if (use_sais) {
+	if (!low_mem) {
 		l2b_save(fn_l2b, l2b);
 		bwt = mb_bwt_libsais(l2b, sa_bit, 1, n_thread);
 	} else {

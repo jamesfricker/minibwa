@@ -24,10 +24,10 @@ static int usage(FILE *fp)
 	fprintf(fp, "    version    print the version number\n");
 	fprintf(fp, "  Separate indexing routines:\n");
 	fprintf(fp, "    fa2bit     convert FASTA to the long-2bit format\n");
-	fprintf(fp, "    genraw     build BWT from pac with the BWT-SW algorithm\n");
+	fprintf(fp, "    genraw     generate BWT from pac with the BWT-SW algorithm\n");
 	fprintf(fp, "    raw2bwt    recode bwtgen raw BWT\n");
-	fprintf(fp, "    genbwt     build BWT from long-2bit\n");
 	fprintf(fp, "    gensa      generate sampled SA from BWT\n");
+	fprintf(fp, "    genbwt     generate BWT+SSA from long-2bit with libsais\n");
 	return fp == stdout? 0 : 1;
 }
 
