@@ -19,20 +19,6 @@ static void l2b_format_seq(uint64_t len, char *seq, uint64_t *rng)
 	}
 }
 
-static void l2b_revcomp_formatted(uint64_t len, uint8_t *seq) // reverse complement in place
-{
-	uint64_t i;
-	for (i = 0; i < len>>1; ++i) {
-		uint8_t s = seq[i], t = seq[len - i - 1];
-		seq[len - i - 1] = (s&0xc0) | (3 - (s&3));
-		seq[i] = (t&0xc0) | (3 - (t&3));
-	}
-	if (len&1) {
-		uint8_t t = seq[len>>1];
-		seq[len>>1] = (t&0xc0) | (3 - (t&3));
-	}
-}
-
 static void l2b_add_seq(l2b_t *l2b, uint64_t len, const uint8_t *seq, const char *name, const char *comm, uint64_t *rng)
 {
 	uint64_t i, ambi_len, mask_len, off, m_pac_old;
@@ -107,7 +93,7 @@ static void l2b_collate_str(l2b_t *l2b)
 	}
 }
 
-l2b_t *l2b_import2(const char *fn, uint64_t seed, int both_strand)
+l2b_t *l2b_import(const char *fn, uint64_t seed)
 {
 	gzFile fp;
 	kseq_t *ks;
@@ -121,20 +107,11 @@ l2b_t *l2b_import2(const char *fn, uint64_t seed, int both_strand)
 	while (kseq_read(ks) >= 0) {
 		l2b_format_seq(ks->seq.l, ks->seq.s, &rng);
 		l2b_add_seq(l2b, ks->seq.l, (uint8_t*)ks->seq.s, ks->name.s, ks->comment.l? ks->comment.s : 0, &rng);
-		if (both_strand) {
-			l2b_revcomp_formatted(ks->seq.l, (uint8_t*)ks->seq.s);
-			l2b_add_seq(l2b, ks->seq.l, (uint8_t*)ks->seq.s, ks->name.s, ks->comment.l? ks->comment.s : 0, &rng);
-		}
 	}
 	kseq_destroy(ks);
 	gzclose(fp);
 	l2b_collate_str(l2b);
 	return l2b;
-}
-
-l2b_t *l2b_import(const char *fn, uint64_t seed)
-{
-	return l2b_import2(fn, seed, 0);
 }
 
 void l2b_destroy(l2b_t *l2b)

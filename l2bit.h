@@ -31,7 +31,6 @@ extern "C" {
 #endif
 
 l2b_t *l2b_import(const char *fn, uint64_t seed);
-l2b_t *l2b_import2(const char *fn, uint64_t seed, int both_strand);
 l2b_t *l2b_load(const char *fn);
 int l2b_save(const char *fn, const l2b_t *l2b);
 void l2b_destroy(l2b_t *l2b);
