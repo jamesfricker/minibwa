@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdint.h>
+#include "ksort.h"
 #include "kommon.h"
 #include "kalloc.h"
 #include "bwt.h"
@@ -199,7 +200,7 @@ void mb_bwt_extend(const mb_bwt_t *bwt, const mb_sai_t *ik, mb_sai_t ok[4], int 
 		ok[i].x[!is_back] = bwt->L2[i] + 1 + tk[i]; // +1 for the missing sentinel
 		ok[i].size = (tl[i] -= tk[i]);
 	}
-	ok[3].x[is_back] = ik->x[is_back] + (ik->x[!is_back] <= bwt->primary && ik->x[!is_back] + ik->size - 1 >= bwt->primary);
+	ok[3].x[is_back] = ik->x[is_back] + (ik->x[!is_back] <= bwt->primary && ik->x[!is_back] + ik->size > bwt->primary);
 	ok[2].x[is_back] = ok[3].x[is_back] + tl[3];
 	ok[1].x[is_back] = ok[2].x[is_back] + tl[2];
 	ok[0].x[is_back] = ok[1].x[is_back] + tl[1];
@@ -300,6 +301,87 @@ uint64_t mb_bwt_sa(const mb_bwt_t *bwt, uint64_t k)
 	// without setting bwt->sa[0] = -1, the following line should be
 	// changed to (sa + bwt->sa[k/bwt->sa_intv]) % (bwt->seq_len + 1)
 	return sa + bwt->sa[k >> bwt->sa_bit];
+}
+
+/****************
+ * Multiple SAs *
+ ****************/
+
+typedef struct {
+	int64_t off;
+	int64_t lo, hi;
+} ssa_intv_t;
+
+#define intv_lt(x, y) ((x).hi - (x).lo < (y).hi - (y).lo)
+KSORT_INIT(ssa_intv, ssa_intv_t, intv_lt)
+
+typedef struct {
+	int64_t n_sa, max_sa, n0;
+	int32_t n_a, m_a;
+	ssa_intv_t *a;
+	uint64_t *sa;
+	void *km;
+} ssa_aux_t;
+
+static inline void ssa_add_intv1(ssa_aux_t *aux, int64_t lo, int64_t hi, int64_t off)
+{
+	Kgrow(aux->km, ssa_intv_t, aux->a, aux->n_a, aux->m_a);
+	aux->a[aux->n_a].off = off, aux->a[aux->n_a].lo = lo, aux->a[aux->n_a].hi = hi;
+	aux->n_a++;
+	ks_heapup_ssa_intv(aux->n_a, aux->a);
+}
+
+static int32_t ssa_add_intv(const mb_bwt_t *bwt, ssa_aux_t *aux, int64_t lo, int64_t hi, int64_t off)
+{
+	int64_t m = aux->n0;
+	int64_t k = ((lo - m) >> bwt->sa_bit << bwt->sa_bit) + m;
+	if (aux->n_sa == aux->max_sa) return -1;
+	for (; k < hi; k += 1LL << bwt->sa_bit) {
+		int64_t l = (k - m) >> bwt->sa_bit;
+		if (k < lo) continue;
+		assert(l < bwt->n_sa && aux->n_sa < aux->max_sa);
+		aux->sa[aux->n_sa] = bwt->sa[l];
+		aux->n_sa++;
+		if (aux->n_sa == aux->max_sa) return -1;
+		if (lo < k) ssa_add_intv1(aux, lo, k, off);
+		lo = k + 1;
+	}
+	ssa_add_intv1(aux, lo, hi, off);
+	return 0;
+}
+
+int64_t mb_bwt_sa_multi(void *km, const mb_bwt_t *f, int64_t lo, int64_t hi, int64_t max_sa, uint64_t *sa)
+{
+	ssa_aux_t aux;
+	uint64_t ok[4], ol[4];
+	if (max_sa == 0 || lo >= hi) return 0;
+	memset(&aux, 0, sizeof(aux));
+	aux.max_sa = max_sa < hi - lo? max_sa : hi - lo;
+	aux.m_a = 256, aux.n_a = 0;
+	aux.a = Kmalloc(km, ssa_intv_t, aux.m_a);
+	aux.km = km, aux.sa = sa, aux.n0 = 1;
+	ssa_add_intv(f, &aux, lo, hi, 0);
+	while (aux.n_a > 0 && aux.n_sa < aux.max_sa) {
+		int32_t c;
+		ssa_intv_t x = aux.a[0];
+		--aux.n_a;
+		if (aux.n_a > 0) { // maintain heap
+			aux.a[0] = aux.a[aux.n_a];
+			ks_heapdown_ssa_intv(0, aux.n_a, aux.a);
+		}
+		mb_bwt_rank2a(f, x.lo, x.hi, ok, ol);
+		if (x.lo <= f->primary && x.hi > f->primary) { // reaching the sentinel
+			aux.sa[aux.n_sa] = 0;
+			aux.n_sa++;
+			if (aux.n_sa == aux.max_sa) goto end_ssa_multi;
+		}
+		for (c = 0; c < 4; ++c)
+			if (ok[c] < ol[c])
+				ssa_add_intv(f, &aux, f->L2[c] + 1 + ok[c], f->L2[c] + 1 + ol[c], x.off + 1); // +1 for the missing sentinel
+	}
+end_ssa_multi:
+	kfree(km, aux.a);
+	return aux.n_sa;
 }
 
 /*************************

@@ -44,6 +44,7 @@ uint64_t mb_bwt_rank11(const mb_bwt_t *bwt, uint64_t k, uint8_t c);
 void mb_bwt_rank1a(const mb_bwt_t *bwt, uint64_t k, uint64_t cnt[4]);
 void mb_bwt_rank2a(const mb_bwt_t *bwt, uint64_t k, uint64_t l, uint64_t cntk[4], uint64_t cntl[4]);
 uint64_t mb_bwt_sa(const mb_bwt_t *bwt, uint64_t k);
+int64_t mb_bwt_sa_multi(void *km, const mb_bwt_t *f, int64_t lo, int64_t hi, int64_t max_sa, uint64_t *sa);
 
 static inline void mb_bwt_set_intv(const mb_bwt_t *bwt, int c, mb_sai_t *ik)
 {
