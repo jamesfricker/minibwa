@@ -194,11 +194,14 @@ int main_seed(int argc, char *argv[])
 			kom_sprintf_lite(&out, "EM\t%ld\t%ld\t%ld", a[i].info>>32, a[i].info&0xffffffffull, a[i].size);
 			if (a[i].size <= max_size_out) {
 				int64_t j, n_sa = a[i].size;
-				#if 1
+				#if 0
 				for (j = 0; j < a[i].size; ++j)
-					sa[j] = mb_bwt_sa(bwt, p.x[0] + j);
+					sa[j] = mb_bwt_sa(bwt, a[i].x[0] + j);
 				#else
-				n_sa = mb_bwt_sa_multi(0, bwt, a[i].x[0], a[i].x[0] + a[i].size, max_size_out, sa);
+				//n_sa = mb_bwt_sa_multi(0, bwt, a[i].x[0], a[i].x[0] + a[i].size, max_size_out, sa);
+				for (j = 0; j < a[i].size; ++j)
+					sa[j] = a[i].x[0] + j;
+				mb_bwt_sa2(0, bwt, a[i].size, sa);
 				#endif
 				for (j = 0; j < n_sa; ++j)
 					kom_sprintf_lite(&out, "\t%ld", sa[j]);

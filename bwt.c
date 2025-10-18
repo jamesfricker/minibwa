@@ -312,7 +312,7 @@ void mb_bwt_sa2(void *km, const mb_bwt_t *bwt, int64_t n, uint64_t *x)
 		}
 		for (i = 0; i < r; ++i)
 			if ((z[i].x & mask) == 0)
-				x[z[i].y] = step + bwt->sa[z[i].y >> bwt->sa_bit];
+				x[z[i].y] = step + 1 + bwt->sa[z[i].x >> bwt->sa_bit];
 		r0 = r;
 		for (i = 0, r = 0; i < r0; ++i)
 			if (z[i].x & mask)
