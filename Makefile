@@ -46,10 +46,15 @@ QSufSort.o: QSufSort.h
 bseq.o: bseq.h kseq.h
 bwt.o: kommon.h kalloc.h bwt.h
 bwtgen.o: QSufSort.h
-index.o: bwt.h l2bit.h libsais64.h kommon.h
+index.o: libsais64.h kommon.h ketopt.h mbpriv.h minibwa.h l2bit.h bwt.h
 kalloc.o: kalloc.h
 kommon.o: kommon.h
+kthread.o: kthread.h
 l2bit.o: kommon.h l2bit.h kseq.h
 libsais.o: libsais.h
 libsais64.o: libsais.h libsais64.h
-main.o: ketopt.h kommon.h mbpriv.h l2bit.h bwt.h
+main.o: kommon.h mbpriv.h minibwa.h l2bit.h bwt.h ketopt.h kseq.h
+map-algo.o: mbpriv.h minibwa.h l2bit.h bwt.h kalloc.h kommon.h
+map-main.o: kommon.h mbpriv.h minibwa.h l2bit.h bwt.h bseq.h kalloc.h
+map-main.o: kthread.h ketopt.h
+options.o: minibwa.h
