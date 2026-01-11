@@ -6,11 +6,10 @@
 #include "mbpriv.h"
 #include "ketopt.h"
 #include "kseq.h"
-KSEQ_INIT(gzFile, gzread)
+//KSEQ_INIT(gzFile, gzread)
 
 int main_index(int argc, char *argv[]);
 int main_map(int argc, char *argv[]);
-int main_seed(int argc, char *argv[]);
 
 int main_fa2bit(int argc, char *argv[]);
 int main_raw2bwt(int argc, char *argv[]);
@@ -28,7 +27,6 @@ static int usage(FILE *fp)
 	fprintf(fp, "  General:\n");
 	fprintf(fp, "    index      index reference FASTA\n");
 	fprintf(fp, "    map        alignment\n");
-	fprintf(fp, "    seed       seed (exact matches)\n");
 	fprintf(fp, "    version    print the version number\n");
 	fprintf(fp, "  Separate indexing routines:\n");
 	fprintf(fp, "    fa2bit     convert FASTA to the long-2bit format\n");
@@ -49,7 +47,6 @@ int main(int argc, char *argv[])
 	if (argc == 1) return usage(stdout);
 	else if (strcmp(argv[1], "index") == 0) ret = main_index(argc-1, argv+1);
 	else if (strcmp(argv[1], "map") == 0) ret = main_map(argc-1, argv+1);
-	else if (strcmp(argv[1], "seed") == 0) ret = main_seed(argc-1, argv+1);
 	else if (strcmp(argv[1], "fa2bit") == 0) ret = main_fa2bit(argc-1, argv+1);
 	else if (strcmp(argv[1], "genraw") == 0) ret = main_genraw(argc-1, argv+1);
 	else if (strcmp(argv[1], "raw2bwt") == 0) ret = main_raw2bwt(argc-1, argv+1);
@@ -150,62 +147,6 @@ int main_bench(int argc, char *argv[])
 	}
 	fprintf(stderr, "checksum = %lx\n", (unsigned long)cs);
 	fprintf(stderr, "t = %.3f\n", kom_cputime() - t);
-	mb_bwt_destroy(bwt);
-	return 0;
-}
-
-int main_seed(int argc, char *argv[])
-{
-	mb_mopt_t mo;
-	mb_bwt_t *bwt;
-	gzFile fp;
-	kseq_t *ks;
-	mb_sai_v v = {0,0,0};
-	uint8_t *seq_enc = 0;
-	int32_t m_seq_enc = 0;
-
-	if (argc < 3) {
-		fprintf(stderr, "Usage: minibwa seed <idx.mbw> <reads.fq>\n");
-		return 1;
-	}
-
-	mb_mopt_init(&mo);
-
-	bwt = mb_bwt_load(argv[1]);
-	if (!bwt) {
-		fprintf(stderr, "ERROR: failed to load BWT from %s\n", argv[1]);
-		return 1;
-	}
-
-	fp = gzopen(argv[2], "r");
-	if (!fp) {
-		fprintf(stderr, "ERROR: failed to open FASTQ %s\n", argv[2]);
-		mb_bwt_destroy(bwt);
-		return 1;
-	}
-
-	ks = kseq_init(fp);
-	while (kseq_read(ks) >= 0) {
-		int i;
-		if (ks->seq.l > m_seq_enc) {
-			m_seq_enc = ks->seq.l;
-			seq_enc = (uint8_t*)realloc(seq_enc, m_seq_enc);
-		}
-		for (i = 0; i < ks->seq.l; ++i)
-			seq_enc[i] = kom_nt4_table[(uint8_t)ks->seq.s[i]];
-
-		v.n = 0;
-		mb_seed_intv(0, bwt, ks->seq.l, seq_enc, mo.min_len, mo.max_sub_occ, &v);
-		for (i = 0; i < v.n; ++i) {
-			uint32_t st = v.a[i].info >> 32;
-			uint32_t en = (uint32_t)v.a[i].info;
-			printf("%s\t%u\t%u\t%lld\n", ks->name.s, st, en, (long long)v.a[i].size);
-		}
-	}
-	free(v.a);
-	free(seq_enc);
-	kseq_destroy(ks);
-	gzclose(fp);
 	mb_bwt_destroy(bwt);
 	return 0;
 }
