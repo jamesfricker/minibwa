@@ -4,6 +4,9 @@
 #include "kommon.h"
 #include "ksort.h"
 
+#define key_128x(a) ((a).x)
+KRADIX_SORT_INIT(mb128x, mb128_t, key_128x, 8)
+
 struct mb_tbuf_s {
 	void *km;
 };
@@ -23,42 +26,33 @@ void mb_tbuf_destroy(mb_tbuf_t *b)
 	free(b);
 }
 
-#define key_128x(a) ((a).x)
-KRADIX_SORT_INIT(mb128x, mb128_t, key_128x, 8)
-
-static inline uint64_t hash64(uint64_t key)
+static inline uint64_t hash64(uint64_t x)
 {
-	key = (~key + (key << 21));
-	key = key ^ key >> 24;
-	key = ((key + (key << 3)) + (key << 8));
-	key = key ^ key >> 14;
-	key = ((key + (key << 2)) + (key << 4));
-	key = key ^ key >> 28;
-	key = (key + (key << 31));
-	return key;
+	x ^= x >> 30;
+	x *= 0xbf58476d1ce4e5b9ULL;
+	x ^= x >> 27;
+	x *= 0x94d049bb133111ebULL;
+	x ^= x >> 31;
+	return x;
 }
 
-static inline void mb_hit_set_coor(mb_hit_t *r, int32_t qlen, const mb_idx_t *idx, const mb_anchor_t *a)
+static inline void mb_hit_set_coor(mb_hit_t *r, int32_t qlen, const l2b_t *l2b, const mb_anchor_t *a)
 { // NB: r->as and r->cnt MUST BE set correctly for this function to work
 	int32_t k = r->as;
 	const mb_anchor_t *ak = &a[k];
 	const mb_anchor_t *ak_last = &a[k + r->cnt - 1];
-	int64_t cst, cid;
-	int rev;
 
-	// Use l2b_intv2cid to convert global coordinates to contig-relative coordinates
-	cid = l2b_intv2cid(idx->l2b, ak->pos, ak->pos + ak->len, &cst, &rev);
-	r->tid = cid;
-	r->rev = rev;
-	r->ts = cst;
-	
-	// For the end coordinate, we need the relative coordinate of the last anchor
-	l2b_intv2cid(idx->l2b, ak_last->pos, ak_last->pos + ak_last->len, &cst, &rev);
-	r->te = cst + ak_last->len; // end is one-past-the-last base on the forward strand
-
-	// query coordinates
-	r->qs = ak->qs + 1 > ak->len ? ak->qs + 1 - ak->len : 0;
-	r->qe = ak_last->qs + 1;
+	if (ak->tid < l2b->n_ctg) {
+		r->tid = ak->tid, r->rev = 0;
+		r->ts = ak->pos - l2b->ctg[r->tid].off;
+		r->te = ak_last->pos + ak_last->len - l2b->ctg[r->tid].off;
+	} else {
+		r->tid = 2 * l2b->n_ctg - 1 - ak->tid, r->rev = 1;
+		r->ts = l2b->tot_len * 2 - (ak_last->pos + ak_last->len) - l2b->ctg[r->tid].off;
+		r->te = l2b->tot_len * 2 - ak->pos - l2b->ctg[r->tid].off;
+	}
+	r->qs = ak->qs;
+	r->qe = ak_last->qs + ak_last->len;
 }
 
 mb_hit_t *mb_gen_hit(void *km, uint32_t hash, int qlen, const mb_idx_t *idx, int n_u, uint64_t *u, mb_anchor_t *a)
@@ -90,7 +84,7 @@ mb_hit_t *mb_gen_hit(void *km, uint32_t hash, int qlen, const mb_idx_t *idx, int
 		ri->score = z[i].x >> 32;
 		ri->cnt = (int32_t)z[i].y;
 		ri->as = z[i].y >> 32;
-		mb_hit_set_coor(ri, qlen, idx, a);
+		mb_hit_set_coor(ri, qlen, idx->l2b, a);
 	}
 	kfree(km, z);
 	return r;
