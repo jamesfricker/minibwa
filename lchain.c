@@ -35,12 +35,6 @@ static inline float mb_log2(float x) // NB: this doesn't work when x<2
 	return log_2;
 }
 
-// Internal 128-bit struct for backtracking (score, index)
-typedef struct { uint64_t x, y; } mb128_t;
-
-#define key_128x(a) ((a).x)
-KRADIX_SORT_INIT(mb128x, mb128_t, key_128x, 8)
-
 static int64_t mb_chain_bk_end(int32_t max_drop, const mb128_t *z, const int32_t *f, const int64_t *p, int32_t *t, int64_t k)
 {
 	int64_t i = z[k].y, end_i = -1, max_i = i;

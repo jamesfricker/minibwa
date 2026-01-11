@@ -21,6 +21,9 @@ typedef struct {
 
 typedef struct { int64_t n, m; mb_anchor_t *a; } mb_anchor_v;
 
+typedef struct { uint64_t x, y; } mb128_t;
+void radix_sort_mb128x(mb128_t *beg, mb128_t *end);
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -38,6 +41,9 @@ mb_anchor_t *mb_lchain_dp(int max_dist_x, int max_dist_y, int bw, int max_skip, 
 						  int64_t n, mb_anchor_t *a, int *n_u_, uint64_t **_u, void *km);
 mb_anchor_t *mb_lchain_rmq(int max_dist, int max_dist_inner, int bw, int max_chn_skip, int cap_rmq_size, int min_cnt, int min_sc, float chn_pen_gap, float chn_pen_skip,
 						   int64_t n, mb_anchor_t *a, int *n_u_, uint64_t **_u, void *km);
+
+// defined in map-algo.c
+mb_hit_t *mb_gen_hit(void *km, uint32_t hash, int qlen, const mb_idx_t *idx, int n_u, uint64_t *u, mb_anchor_t *a);
 
 #ifdef __cplusplus
 }

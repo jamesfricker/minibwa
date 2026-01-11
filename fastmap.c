@@ -75,18 +75,23 @@ int main_fastmap(int argc, char *argv[])
 				mb_anchor(0, idx, &u, max_anchor_occ, &v);
 				mb_anchor_sort(v.n, v.a);
 				if (test_chain) {
-					int n_u;
+					int n_u, j;
 					uint64_t *cu;
 					mb_anchor_t *ca;
+					mb_hit_t *hit;
 					ca = mb_lchain_dp(opt.max_gap, opt.max_gap, opt.bw, opt.max_chain_skip, opt.max_chain_iter,
 									  1, opt.min_chain_score, opt.chn_pen_gap, opt.chn_pen_skip,
 									  v.n, v.a, &n_u, &cu, 0);
 					v.a = 0; v.n = v.m = 0; // ownership transferred to ca
+					hit = mb_gen_hit(0, 0, ks->seq.l, idx, n_u, cu, ca);
 					kom_sprintf_lite(&out, "%s", ks->name.s);
-					for (i = 0; i < n_u; ++i)
-						kom_sprintf_lite(&out, "\t%d:%d", (int32_t)(cu[i]>>32), (int32_t)cu[i]);
+					for (j = 0; j < n_u; ++j) {
+						const char *name = hit[j].tid >= 0 ? idx->l2b->ctg[hit[j].tid].name : "*";
+						kom_sprintf_lite(&out, "\t%d:%d:%s:%ld-%ld:%d-%d:%c", hit[j].score, hit[j].cnt,
+							name, (long)hit[j].ts, (long)hit[j].te, hit[j].qs, hit[j].qe, "+-"[hit[j].rev]);
+					}
 					kom_sprintf_lite(&out, "\n");
-					free(ca); free(cu);
+					free(ca); free(cu); free(hit);
 				}
 			} else {
 				for (i = 0; i < u.n; ++i) {

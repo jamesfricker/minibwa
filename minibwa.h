@@ -41,9 +41,14 @@ typedef struct {
 } mb_extra_t;
 
 typedef struct {
-	int64_t tid;
-	int64_t ts, te;
-	int32_t qs, qe;
+	int32_t id;             // ID for internal uses
+	int32_t cnt;            // number of anchors
+	int32_t score;          // chaining score
+	int32_t as;             // offset in the a[] array (for internal uses only)
+	int32_t qs, qe;         // query start and end
+	int64_t tid;            // target ID (rev<<31 | tid)
+	int64_t ts, te;         // target start and end
+	uint32_t rev:1, dummy:31;
 	mb_extra_t *p;
 } mb_hit_t;
 
