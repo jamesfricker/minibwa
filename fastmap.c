@@ -85,13 +85,15 @@ int main_fastmap(int argc, char *argv[])
 									  v.n, v.a, &n_u, &cu, 0);
 					v.a = 0; v.n = v.m = 0; // ownership transferred to ca
 					hit = mb_gen_hit(0, 0, ks->seq.l, idx, n_u, cu, ca);
-					kom_sprintf_lite(&out, "%s", ks->name.s);
+					mb_set_parent(0, opt.mask_level, opt.mask_len, n_u, hit, opt.sub_diff, 0, opt.alt_diff_frac);
 					for (j = 0; j < n_u; ++j) {
-						const char *name = hit[j].tid >= 0 ? idx->l2b->ctg[hit[j].tid].name : "*";
-						kom_sprintf_lite(&out, "\t%d:%d:%s:%ld-%ld:%d-%d:%c", hit[j].score, hit[j].cnt,
-							name, (long)hit[j].ts, (long)hit[j].te, hit[j].qs, hit[j].qe, "+-"[hit[j].rev]);
+						mb_hit_t *h = &hit[j];
+						if (h->tid < 0) continue;
+						kom_sprintf_lite(&out, "%s\t%ld\t%d\t%d\t%c\t%s\t%ld\t%ld\t%ld\t%d\t%d\t%d\ttp:A:%c\tcm:i:%d\n",
+							ks->name.s, (long)ks->seq.l, h->qs, h->qe, "+-"[h->rev],
+							idx->l2b->ctg[h->tid].name, (long)idx->l2b->ctg[h->tid].len,
+							(long)h->ts, (long)h->te, h->mlen, h->blen, 255, h->parent == h->id? 'P' : 'S', h->cnt);
 					}
-					kom_sprintf_lite(&out, "\n");
 					free(ca); free(cu); free(hit);
 				} else {
 					for (j = 0; j < v.n; ++j) {
