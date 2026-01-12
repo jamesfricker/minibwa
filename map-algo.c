@@ -151,7 +151,7 @@ void mb_sync_hits(void *km, int n_regs, mb_hit_t *regs)
  * Set primary and secondary hits *
  **********************************/
 
-void mb_set_parent(void *km, float mask_level, int mask_len, int n, mb_hit_t *r, int sub_diff, int hard_mask_level, float alt_diff_frac)
+void mb_set_parent(void *km, float mask_level, int mask_len, int n, mb_hit_t *r, int sub_diff, int hard_mask_level)
 {
 	int i, j, k, *w;
 	uint64_t *cov;

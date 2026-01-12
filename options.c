@@ -24,7 +24,6 @@ void mb_mopt_init(mb_mopt_t *opt)
 	opt->sub_diff = 0;
 	opt->pri_ratio = 0.8f;
 	opt->best_n = 5;
-	opt->alt_diff_frac = 0.05f;
 	// I/O options
 	opt->n_thread = 4;
 	opt->mb_size = 500000000;

@@ -32,7 +32,6 @@ typedef struct {
 	int32_t sub_diff;
 	float pri_ratio;
 	int32_t best_n;
-	float alt_diff_frac;
 	// input/output options
 	int32_t n_thread; // number of worker threads, excluding I/O threads
 	int64_t mb_size;  // mini-batch size
