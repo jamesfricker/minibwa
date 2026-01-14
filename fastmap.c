@@ -87,10 +87,7 @@ int main_fastmap(int argc, char *argv[])
 					for (j = 0; j < n_u; ++j) {
 						mb_hit_t *h = &hit[j];
 						if (h->tid < 0) continue;
-						kom_sprintf_lite(&out, "%s\t%ld\t%d\t%d\t%c\t%s\t%ld\t%ld\t%ld\t%d\t%d\t%d\ttp:A:%c\tcm:i:%d\n",
-							ks->name.s, (long)ks->seq.l, h->qs, h->qe, "+-"[h->rev],
-							idx->l2b->ctg[h->tid].name, (long)idx->l2b->ctg[h->tid].len,
-							(long)h->ts, (long)h->te, h->mlen, h->blen, 255, h->parent == h->id? 'P' : 'S', h->cnt);
+						mb_fmt_paf_basic(&out, idx->l2b, ks->seq.l, h, ks->name.s);
 					}
 					free(ca); free(cu); free(hit);
 				} else {

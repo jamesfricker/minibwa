@@ -4,6 +4,7 @@
 #include "minibwa.h"
 #include "l2bit.h"
 #include "bwt.h"
+#include "kommon.h"
 
 #define MB_DBG_NO_KALLOC    (0x1LL)
 
@@ -56,6 +57,9 @@ void mb_select_sub(void *km, float pri_ratio, int min_diff, int best_n, int *n_,
 void mb_filter_hits(const mb_mopt_t *opt, int qlen, int *n_regs, mb_hit_t *regs);
 int mb_squeeze_a(void *km, int n_regs, mb_hit_t *regs, mb_anchor_t *a);
 void mb_split_hit(mb_hit_t *r, mb_hit_t *r2, int n, int qlen, mb_anchor_t *a, const l2b_t *l2b);
+
+// defined in format.c
+void mb_fmt_paf_basic(kstring_t *s, const l2b_t *l2b, int64_t qlen, const mb_hit_t *p, const char *qname);
 
 // defined in align.c
 mb_hit_t *mb_align_skeleton(void *km, const mb_mopt_t *opt, const mb_idx_t *mi, int qlen, const char *qstr, int *n_regs_, mb_hit_t *regs, mb_anchor_t *a);

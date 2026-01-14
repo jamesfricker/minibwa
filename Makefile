@@ -4,7 +4,7 @@ CFLAGS=		-std=c99 -g -Wall -O3
 CXXFLAGS=	$(CFLAGS)
 CPPFLAGS=
 INCLUDES=
-LOBJS=		kommon.o kalloc.o kmempool.o bwt.o l2bit.o options.o seed.o map-algo.o lchain.o align.o \
+LOBJS=		kommon.o kalloc.o kmempool.o bwt.o l2bit.o options.o seed.o map-algo.o lchain.o align.o format.o \
 			ksw2_extz2_sse.o ksw2_extd2_sse.o ksw2_ll_sse.o
 AOBJS=		kthread.o QSufSort.o bwtgen.o libsais.o libsais64.o index.o bseq.o map-main.o fastmap.o
 PROG=		minibwa
@@ -48,7 +48,8 @@ align.o: mbpriv.h minibwa.h l2bit.h bwt.h kommon.h kalloc.h ksw2.h
 bseq.o: bseq.h kseq.h
 bwt.o: kommon.h kalloc.h bwt.h
 bwtgen.o: QSufSort.h
-fastmap.o: mbpriv.h minibwa.h l2bit.h bwt.h ketopt.h kommon.h kseq.h kalloc.h
+fastmap.o: mbpriv.h minibwa.h l2bit.h bwt.h kommon.h ketopt.h kseq.h kalloc.h
+format.o: mbpriv.h minibwa.h l2bit.h bwt.h kommon.h
 index.o: libsais64.h kommon.h ketopt.h mbpriv.h minibwa.h l2bit.h bwt.h
 kalloc.o: kalloc.h
 kmempool.o: kmempool.h kalloc.h
@@ -58,12 +59,13 @@ ksw2_extz2_sse.o: ksw2.h kalloc.h
 ksw2_ll_sse.o: ksw2.h kalloc.h
 kthread.o: kthread.h
 l2bit.o: kommon.h l2bit.h kseq.h
-lchain.o: mbpriv.h minibwa.h l2bit.h bwt.h kalloc.h kmempool.h krmq.h ksort.h
+lchain.o: mbpriv.h minibwa.h l2bit.h bwt.h kommon.h kalloc.h kmempool.h
+lchain.o: krmq.h ksort.h
 libsais.o: libsais.h
 libsais64.o: libsais.h libsais64.h
 main.o: kommon.h mbpriv.h minibwa.h l2bit.h bwt.h ketopt.h kseq.h
-map-algo.o: mbpriv.h minibwa.h l2bit.h bwt.h kalloc.h kommon.h ksort.h
+map-algo.o: mbpriv.h minibwa.h l2bit.h bwt.h kommon.h kalloc.h ksort.h
 map-main.o: kommon.h mbpriv.h minibwa.h l2bit.h bwt.h bseq.h kalloc.h
 map-main.o: kthread.h ketopt.h
 options.o: minibwa.h
-seed.o: mbpriv.h minibwa.h l2bit.h bwt.h kalloc.h ksort.h
+seed.o: mbpriv.h minibwa.h l2bit.h bwt.h kommon.h kalloc.h ksort.h
