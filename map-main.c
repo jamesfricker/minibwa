@@ -169,6 +169,7 @@ int32_t mb_map_file(const mb_opt_t *opt, const mb_idx_t *idx, int32_t n, const c
 static ko_longopt_t long_options[] = {
 	{ "no-kalloc",    ko_no_argument,       301 },
 	{ "dbg-aln-seq",  ko_no_argument,       601 },
+	{ "dbg-anchor",   ko_no_argument,       602 },
 	{ "version",      ko_no_argument,       901 },
 	{ 0, 0, 0 }
 };
@@ -246,6 +247,8 @@ int main_map(int argc, char *argv[])
 			mo.flag |= MB_F_NO_KALLOC;
 		} else if (c == 601) { // --dbg-aln-seq
 			kom_dbg_flag |= MB_DBG_ALN_SEQ;
+		} else if (c == 602) { // --dbg-anchor
+			kom_dbg_flag |= MB_DBG_ANCHOR;
 		} else if (c == 901) { // --version
 			puts(MB_VERSION);
 			exit(0);

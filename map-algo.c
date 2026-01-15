@@ -389,6 +389,19 @@ void mb_set_mapq(void *km, int n_regs, mb_hit_t *regs, int min_chain_sc, int mat
  * Core mapping routine *
  ************************/
 
+static void mb_dbg_anchor(const mb_idx_t *idx, int qlen, int64_t n, const mb_anchor_t *a, const char *qname)
+{
+	int64_t i;
+	for (i = 0; i < n; ++i) {
+		const mb_anchor_t *ai = &a[i];
+		int rid = ai->sid >> 1;
+		int rev = ai->sid & 1;
+		int32_t qs = rev? qlen - 1 - ai->qpos : ai->qpos + 1 - ai->len;
+		int64_t ts = ai->tpos + 1 - ai->len;
+		fprintf(stderr, "AC\t%s\t%d\t%c\t%s\t%ld\t%d\n", qname? qname : "*", qs, "+-"[rev], idx->l2b->ctg[rid].name, (long)ts, ai->len);
+	}
+}
+
 mb_hit_t *mb_map(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, const char *seq0, int32_t *n_hit_, mb_tbuf_t *b, const char *qname)
 {
 	uint8_t *seq;
@@ -414,6 +427,7 @@ mb_hit_t *mb_map(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, const c
 	chn_pen_skip = opt->chain_skip_scale * .01 * opt->min_len;
 	mb_seed_intv(b->km, idx->bwt, qlen, seq, opt->min_len, opt->max_sub_occ, &u);
 	mb_anchor(b->km, idx, &u, qlen, opt->max_occ, &v);
+	if (kom_dbg_flag & MB_DBG_ANCHOR) mb_dbg_anchor(idx, qlen, v.n, v.a, qname);
 	a = mb_lchain_dp(b->km, opt->max_gap, opt->max_gap, opt->bw, opt->max_chain_skip, opt->max_chain_iter,
 					 opt->min_chain_score, chn_pen_gap, chn_pen_skip, v.n, v.a, &n_hit, &w);
 	v.a = 0; v.n = v.m = 0; // ownership transferred to a
