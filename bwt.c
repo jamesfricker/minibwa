@@ -56,10 +56,10 @@ static uint64_t mb_bwt_data_len(uint64_t len)
 }
 
 /* BWT layout. Each block consists of u64[4]+u32[8], 64 bytes in total. The
- * lower 56 bits of u64[4] (see BWT_CNT_SHIFT) store the accumulative count of
- * A/C/G/T bases. The higher 8 bits store the count of A/C/G/T in the next
- * 64nt. u32[8] keeps a BWT substring of 128nt in length. Because it follows
- * little endian, it can also be considered as u64[4] etc.
+ * lower 56 bits of each u64[4] (see BWT_CNT_SHIFT) store the accumulative
+ * count of A/C/G/T bases. The higher 8 bits store the count of A/C/G/T in the
+ * next 64nt. u32[8] keeps a BWT substring of 128nt in length. Because it
+ * follows little endian, it can also be considered as u64[4] etc.
  */
 mb_bwt_t *mb_bwt_init_from_raw(int is_byte, const void *raw_, uint64_t len, uint64_t primary)
 {
@@ -121,8 +121,12 @@ static inline int rank_aux1(uint64_t y, uint8_t c)
 	// reduce nucleotide counting to bits counting
 	y = ((c&2)? y : ~y) >> 1 & ((c&1)? y : ~y) & 0x5555555555555555ull;
 	// count the number of 1s in y
+	#if 0
 	y = (y & 0x3333333333333333ull) + (y >> 2 & 0x3333333333333333ull);
 	return ((y + (y >> 4)) & 0xf0f0f0f0f0f0f0full) * 0x101010101010101ull >> 56;
+	#else
+	return __builtin_popcountll(y);
+	#endif
 }
 
 uint64_t mb_bwt_rank11(const mb_bwt_t *bwt, uint64_t k, uint8_t c)
@@ -139,17 +143,17 @@ uint64_t mb_bwt_rank11(const mb_bwt_t *bwt, uint64_t k, uint8_t c)
 	p += 4; // p points to 2-bit encoded BWT
 	end = p + ((k&0x7f) >> 5);
 	p += (k&0x7f) >= 64? 2 : 0;
-	for (; p < end; ++p) n += rank_aux1(*p, c);
+//	for (; p < end; ++p) n += rank_aux1(*p, c); // we go through this loop 0 or 1 time
+	if (p < end) n += rank_aux1(*p, c), ++p;
 	n += rank_aux1(*p << ((~k&0x1f) << 1), c);
-	if (c == 0) n -= ~k&0x1f;
+	if (c == 0) n -= ~k&0x1f; // "A" may be overcounted due to the shift above; this line corrects that
 	return n;
 }
 
 static inline const uint32_t *seek_block(const mb_bwt_t *bwt, uint64_t k, uint64_t cnt[4])
 {
-	const uint64_t *p;
+	const uint64_t *p = bwt_block(bwt, k);
 	uint64_t mask = (k&0x7f) >= 64? (1ULL << (64 - BWT_CNT_SHIFT)) - 1 : 0;
-	p = bwt_block(bwt, k);
 	cnt[0] = (p[0] & BWT_CNT_MASK) + ((p[0] >> BWT_CNT_SHIFT) & mask);
 	cnt[1] = (p[1] & BWT_CNT_MASK) + ((p[1] >> BWT_CNT_SHIFT) & mask);
 	cnt[2] = (p[2] & BWT_CNT_MASK) + ((p[2] >> BWT_CNT_SHIFT) & mask);
