@@ -343,10 +343,13 @@ static void mb_align_pair(void *km, const mb_opt_t *opt, int qlen, const uint8_t
 	if (kom_dbg_flag & MB_DBG_ALN_SEQ) {
 		int i;
 		fprintf(stderr, "===> q=(%d,%d), e=(%d,%d), bw=%d, ksw_flag=0x%x, zdrop=%d, end_bonus=%d <===\n", opt->q, opt->q2, opt->e, opt->e2, w, ksw_flag, opt->zdrop, end_bonus);
-		for (i = 0; i < tlen; ++i) fputc("ACGTN"[tseq[i]], stderr); fputc('\n', stderr);
-		for (i = 0; i < qlen; ++i) fputc("ACGTN"[qseq[i]], stderr); fputc('\n', stderr);
+		for (i = 0; i < tlen; ++i) fputc("ACGTN"[tseq[i]], stderr);
+		fputc('\n', stderr);
+		for (i = 0; i < qlen; ++i) fputc("ACGTN"[qseq[i]], stderr);
+		fputc('\n', stderr);
 		fprintf(stderr, "score=%d, max=%d, cigar=", ez->score, ez->max);
-		for (i = 0; i < ez->n_cigar; ++i) fprintf(stderr, "%d%c", ez->cigar[i]>>4, MB_CIGAR_STR[ez->cigar[i]&0xf]); fprintf(stderr, "\n");
+		for (i = 0; i < ez->n_cigar; ++i) fprintf(stderr, "%d%c", ez->cigar[i]>>4, MB_CIGAR_STR[ez->cigar[i]&0xf]);
+		fprintf(stderr, "\n");
 	}
 }
 
