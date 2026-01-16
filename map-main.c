@@ -264,16 +264,6 @@ int main_map(int argc, char *argv[])
 
 	idx = mb_idx_load(argv[o.ind]);
 	kom_assert(idx, "failed to load the index.");
-	if (0) {
-		int i, depth = 9;
-		mb_sai_t *s;
-		s = kom_calloc(mb_sai_t, 1<<depth*2);
-		mb_bwt_count_kmer(idx->bwt, depth, s);
-		for (i = 0; i < 1<<depth*2; ++i)
-			printf("%d\t%lld\n", i, s[i].size);
-		free(s);
-		return 0;
-	}
 	mb_map_file(&mo, idx, argc - (o.ind + 1), (const char**)&argv[o.ind+1], fn_out);
 	mb_idx_destroy(idx);
 	return 0;
