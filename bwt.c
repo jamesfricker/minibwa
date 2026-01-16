@@ -349,13 +349,18 @@ void mb_bwt_sa_batch(void *km, const mb_bwt_t *bwt, int64_t n, uint64_t *x)
 	int64_t i, step = 0, r = n;
 	kom128_t *z;
 	z = Kmalloc(km, kom128_t, n);
-	for (i = 0; i < n; ++i)
+	for (i = 0; i < n; ++i) {
 		z[i].x = x[i], z[i].y = i;
+		mb_bwt_block_prefetch(bwt, z[i].x);
+	}
 	for (step = 0; r; ++step) {
 		int64_t r0;
 		for (i = 0; i < r; ++i) {
-			if (i + 1 < r) mb_bwt_block_prefetch(bwt, z[i+1].x);
 			z[i].x = bwt_invPsi(bwt, z[i].x);
+			if ((z[i].x & mask) == 0)
+				__builtin_prefetch(&bwt->sa[z[i].x >> bwt->sa_bit]);
+			else
+				mb_bwt_block_prefetch(bwt, z[i].x);
 		}
 		for (i = 0; i < r; ++i)
 			if ((z[i].x & mask) == 0)
