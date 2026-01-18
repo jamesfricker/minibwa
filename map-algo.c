@@ -445,6 +445,7 @@ mb_hit_t *mb_map_sai(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, con
 					 opt->min_chain_score, chn_pen_gap, chn_pen_skip, v.n, v.a, &n_hit, &w);
 	v.a = 0; v.n = v.m = 0; // ownership transferred to a
 	kfree(b->km, u->a); // no longer needed
+	u->n = 0, u->a = 0;
 
 	// chain ordering
 	hit = mb_gen_hit(b->km, hash, qlen, idx->l2b, n_hit, w, a);

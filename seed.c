@@ -41,7 +41,7 @@ void mb_seed_intv(void *km, const mb_bwt_t *bwt, int32_t len, const uint8_t *seq
 		x = st;
 		sub_min_len = (en - st) / 2 > min_len? (en - st) / 2 : min_len;
 		do { // if two SMEMs have large overlaps, we may find the same sub intervals in both. A rare case not worth optimizing
-			x = mb_bwt_smem(bwt, len, seq, x, sub_min_len, v->a[i].size + 1, &p);
+			x = mb_bwt_smem(bwt, en, seq, x, sub_min_len, v->a[i].size + 1, &p);
 			if (p.size > v->a[i].size) {
 				Kgrow(km, mb_sai_t, v->a, v->n, v->m);
 				v->a[v->n++] = p;
@@ -56,7 +56,7 @@ void mb_seed_intv_batch(void *km, const mb_bwt_t *bwt, int32_t n_seq, int32_t *l
 	mb_smem_entry_t *s;
 	int32_t i, j, n_s, *nv;
 
-	// first pass
+	// first pass: standard SMEMs
 	s = Kcalloc(km, mb_smem_entry_t, max_batch_size);
 	nv = Kcalloc(km, int32_t, n_seq);
 	for (i = 0; i < n_seq; ++i) v[i].n = 0;
@@ -73,7 +73,7 @@ void mb_seed_intv_batch(void *km, const mb_bwt_t *bwt, int32_t n_seq, int32_t *l
 		mb_bwt_smem_batch(km, bwt, en - i, s);
 	}
 
-	// second pass
+	// second pass; sub-SMEMs
 	for (i = 0; i < n_seq; ++i) nv[i] = v[i].n;
 	for (i = n_s = 0; i < n_seq; ++i) {
 		for (j = 0; j < nv[i]; ++j) {
@@ -106,8 +106,9 @@ void mb_seed_intv_batch(void *km, const mb_bwt_t *bwt, int32_t n_seq, int32_t *l
 static void mb_seed_sort_dedup(mb_sai_v *u)
 {
 	int64_t i, i0, j;
+	if (u->n <= 1) return;
 	// sort by ::x[0] and then by ::size
-	if (u->n > 1) radix_sort_mb_sai0(u->a, u->a + u->n);
+	radix_sort_mb_sai0(u->a, u->a + u->n);
 	for (i = 1, i0 = 0; i <= u->n; ++i) {
 		if (i == u->n || u->a[i].x[0] != u->a[i0].x[0]) {
 			if (i - i0 > 1) {
