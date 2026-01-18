@@ -258,7 +258,7 @@ int64_t mb_bwt_back(const mb_bwt_t *f, uint32_t len, const uint8_t *q, int64_t s
 			z = z << 2 | q[i];                  // NB: this loop doesn't check ambigous bases
 		assert(z < 1<<f->pre_len*2);
 		*p = f->pre[z];
-	}
+	} else p->size = 0;
 	if (p->size < min_occ) { // then we need to use the standard procedure
 		mb_bwt_set_intv(f, q[pos], p);
 		i = pos - 1;
