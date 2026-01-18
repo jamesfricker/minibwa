@@ -332,6 +332,23 @@ static inline int32_t tq_shift(tiny_queue_t *q)
 	return x;
 }
 
+static inline void se_one_step_back(const mb_bwt_t *bwt, mb_smem_entry_t *s)
+{
+	mb_sai_t ok[4];
+	int32_t c = s->q[s->i];
+	assert(c < 4); // shouldn't happen
+	mb_bwt_extend(bwt, &s->p, ok, 1);
+	if (ok[c].size < s->min_occ) { // move back to stage1
+		s->x = s->i + 1;
+		s->stage = 1;
+	} else { // stay in stage2/4
+		s->p = ok[c];
+		s->i--;
+		mb_bwt_block_prefetch(bwt, s->p.x[0]); // prefetch for the next backward iteration
+		mb_bwt_block_prefetch(bwt, s->p.x[0] + s->p.size);
+	}
+}
+
 void mb_bwt_smem_batch(void *km, const mb_bwt_t *bwt, int32_t n, mb_smem_entry_t *a)
 {
 	int32_t i;
@@ -378,20 +395,7 @@ void mb_bwt_smem_batch(void *km, const mb_bwt_t *bwt, int32_t n, mb_smem_entry_t
 				mb_bwt_block_prefetch(bwt, s->p.x[1] + s->p.size);
 				s->i = s->x + s->min_len;
 				s->stage = 3;
-			} else {
-				int32_t c = s->q[s->i];
-				assert(c < 4); // shouldn't happen
-				mb_bwt_extend(bwt, &s->p, ok, 1);
-				if (ok[c].size < s->min_occ) { // move back to stage1
-					s->x = s->i + 1;
-					s->stage = 1;
-				} else { // stay in stage2
-					s->p = ok[c];
-					s->i--;
-					mb_bwt_block_prefetch(bwt, s->p.x[0]); // prefetch for the next backward iteration
-					mb_bwt_block_prefetch(bwt, s->p.x[0] + s->p.size);
-				}
-			}
+			} else se_one_step_back(bwt, s);
 		} else if (s->stage == 3) { // forward pass; require ->{i,p}
 			if (s->i == s->en) {
 				s->p.info = (uint64_t)s->x << 32 | s->i;
@@ -424,20 +428,7 @@ void mb_bwt_smem_batch(void *km, const mb_bwt_t *bwt, int32_t n, mb_smem_entry_t
 			if (s->i < s->x + 1) {
 				s->x = s->i + 1;
 				s->stage = 1;
-			} else {
-				int32_t c = s->q[s->i];
-				assert(c < 4); // shouldn't happen
-				mb_bwt_extend(bwt, &s->p, ok, 1);
-				if (ok[c].size < s->min_occ) {
-					s->x = s->i + 1;
-					s->stage = 1;
-				} else {
-					s->p = ok[c];
-					s->i--;
-					mb_bwt_block_prefetch(bwt, s->p.x[0]);
-					mb_bwt_block_prefetch(bwt, s->p.x[0] + s->p.size);
-				}
-			}
+			} else se_one_step_back(bwt, s);
 		}
 		tq_push(&tq, idx);
 	}
