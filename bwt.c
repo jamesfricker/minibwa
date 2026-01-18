@@ -348,7 +348,7 @@ static inline void se_one_step_back(const mb_bwt_t *bwt, mb_smem_entry_t *s)
 	if (ok[c].size < s->min_occ) { // move back to stage1
 		s->x = s->i + 1;
 		s->stage = 1;
-	} else { // stay in stage2/4
+	} else { // stay in the two backward stages
 		s->p = ok[c];
 		s->i--;
 		mb_bwt_block_prefetch(bwt, s->p.x[0]); // prefetch for the next backward iteration
@@ -394,16 +394,16 @@ void mb_bwt_smem_batch(void *km, const mb_bwt_t *bwt, int32_t n, mb_smem_entry_t
 				s->i = s->x + s->min_len - 1;
 				mb_bwt_set_intv(bwt, s->q[s->i], &s->p);
 				s->i--;
-				s->stage = 2;
+				s->stage = 3;
 			}
-		} else if (s->stage == 2) { // first backward pass; require ->{i,p}
-			if (s->i < s->x) { // move to stage 3
+		} else if (s->stage == 3) { // first backward pass; require ->{i,p}
+			if (s->i < s->x) { // move to the next stage
 				mb_bwt_block_prefetch(bwt, s->p.x[1]); // prefetch for the forward pass
 				mb_bwt_block_prefetch(bwt, s->p.x[1] + s->p.size);
 				s->i = s->x + s->min_len;
-				s->stage = 3;
+				s->stage = 4;
 			} else se_one_step_back(bwt, s);
-		} else if (s->stage == 3) { // forward pass; require ->{i,p}
+		} else if (s->stage == 4) { // forward pass; require ->{i,p}
 			if (s->i == s->en) {
 				s->p.info = (uint64_t)s->x << 32 | s->i;
 				Kgrow(km, mb_sai_t, s->v->a, s->v->n, s->v->m);
@@ -421,17 +421,17 @@ void mb_bwt_smem_batch(void *km, const mb_bwt_t *bwt, int32_t n, mb_smem_entry_t
 					s->p.info = (uint64_t)s->x << 32 | s->i;
 					Kgrow(km, mb_sai_t, s->v->a, s->v->n, s->v->m);
 					s->v->a[s->v->n++] = s->p; // save the interval
-					if (c < 0) { // if N, move back to stage1
+					if (c < 0) { // if N, move back to stage 1
 						s->x = s->i + 1;
 						s->stage = 1;
-					} else { // otherwise, move to stage4; TODO: make this work for k-mer caching
+					} else { // otherwise, move to the next stage; TODO: make this work for k-mer caching
 						mb_bwt_set_intv(bwt, s->q[s->i], &s->p);
 						s->i--;
-						s->stage = 4;
+						s->stage = 6;
 					}
 				}
 			}
-		} else if (s->stage == 4) { // second backward pass; similar to stage 2
+		} else if (s->stage == 6) { // second backward pass
 			if (s->i < s->x + 1) {
 				s->x = s->i + 1;
 				s->stage = 1;
