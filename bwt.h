@@ -37,6 +37,7 @@ typedef struct {
 	// internal state
 	int32_t stage;
 	int32_t x, i;
+	int32_t kmer; // for k-mer cache
 	mb_sai_t p;
 } mb_smem_entry_t;
 

@@ -377,9 +377,10 @@ void mb_bwt_smem_batch(void *km, const mb_bwt_t *bwt, int32_t n, mb_smem_entry_t
 
 	// core loop
 	while (tq.count > 0) {
-		mb_sai_t ok[4];
 		int32_t idx;
 		mb_smem_entry_t *s;
+		mb_sai_t ok[4];
+
 		idx = tq_shift(&tq);
 		s = &a[idx];
 		if (s->stage == 1) { // set interval for the first backward pass in smem; require ->x
@@ -390,12 +391,25 @@ void mb_bwt_smem_batch(void *km, const mb_bwt_t *bwt, int32_t n, mb_smem_entry_t
 				if (s->q[i] > 3) xn = i;
 			if (xn >= 0) { // skip N and stay in stage1
 				s->x = xn + 1;
-			} else { // TODO: make this work for k-mer caching
+			} else {
 				s->i = s->x + s->min_len - 1;
-				mb_bwt_set_intv(bwt, s->q[s->i], &s->p);
-				s->i--;
-				s->stage = 3;
+				if (bwt->pre && s->min_len >= bwt->pre_len) {
+					for (i = 0, s->kmer = 0; i < bwt->pre_len; ++i, s->i--)
+						s->kmer = s->kmer << 2 | s->q[s->i];
+					__builtin_prefetch(&bwt->pre[s->kmer]);
+					s->stage = 2;
+				} else {
+					mb_bwt_set_intv(bwt, s->q[s->i--], &s->p);
+					s->stage = 3;
+				}
 			}
+		} else if (s->stage == 2 || s->stage == 5) { // k-mer lookup
+			s->p = bwt->pre[s->kmer];
+			if (s->p.size < s->min_occ) {
+				s->i += bwt->pre_len;
+				mb_bwt_set_intv(bwt, s->q[s->i--], &s->p);
+			}
+			s->stage++;
 		} else if (s->stage == 3) { // first backward pass; require ->{i,p}
 			if (s->i < s->x) { // move to the next stage
 				mb_bwt_block_prefetch(bwt, s->p.x[1]); // prefetch for the forward pass
@@ -410,9 +424,9 @@ void mb_bwt_smem_batch(void *km, const mb_bwt_t *bwt, int32_t n, mb_smem_entry_t
 				s->v->a[s->v->n++] = s->p; // save the interval
 				continue; // trigger termination
 			} else {
-				int32_t c = 3 - (int32_t)s->q[s->i];
+				int32_t i, c = 3 - (int32_t)s->q[s->i];
 				if (c >= 0) mb_bwt_extend(bwt, &s->p, ok, 0);
-				if (c >= 0 && ok[c].size >= s->min_occ) { // stay in stage3
+				if (c >= 0 && ok[c].size >= s->min_occ) { // stay in stage 4
 					s->p = ok[c];
 					s->i++;
 					mb_bwt_block_prefetch(bwt, s->p.x[1]);
@@ -424,9 +438,13 @@ void mb_bwt_smem_batch(void *km, const mb_bwt_t *bwt, int32_t n, mb_smem_entry_t
 					if (c < 0) { // if N, move back to stage 1
 						s->x = s->i + 1;
 						s->stage = 1;
-					} else { // otherwise, move to the next stage; TODO: make this work for k-mer caching
-						mb_bwt_set_intv(bwt, s->q[s->i], &s->p);
-						s->i--;
+					} else if (bwt->pre && s->i - s->x - 1 >= bwt->pre_len) {
+						for (i = 0, s->kmer = 0; i < bwt->pre_len; ++i, s->i--)
+							s->kmer = s->kmer << 2 | s->q[s->i];
+						__builtin_prefetch(&bwt->pre[s->kmer]);
+						s->stage = 5;
+					} else {
+						mb_bwt_set_intv(bwt, s->q[s->i--], &s->p);
 						s->stage = 6;
 					}
 				}
