@@ -27,7 +27,7 @@ void mb_seed_intv(void *km, const mb_bwt_t *bwt, int32_t len, const uint8_t *seq
 	mb_sai_t p;
 
 	v->n = 0;
-	do {
+	do { // pass 1: standard SMEMs
 		x = mb_bwt_smem(bwt, len, seq, x, min_len, 1, &p);
 		if (p.size > 0) {
 			Kgrow(km, mb_sai_t, v->a, v->n, v->m);
@@ -36,7 +36,7 @@ void mb_seed_intv(void *km, const mb_bwt_t *bwt, int32_t len, const uint8_t *seq
 	} while (x < len);
 
 	n_a0 = v->n;
-	for (i = 0; i < n_a0; ++i) {
+	for (i = 0; i < n_a0; ++i) { // pass 2: sub-SMEMs
 		int32_t sub_min_len;
 		uint32_t st = v->a[i].info>>32, en = (uint32_t)v->a[i].info;
 		if (en - st < min_len * 2 || v->a[i].size > max_sub_occ)
@@ -54,7 +54,7 @@ void mb_seed_intv(void *km, const mb_bwt_t *bwt, int32_t len, const uint8_t *seq
 }
 
 void mb_seed_intv_batch(void *km, const mb_bwt_t *bwt, int32_t n_seq, int32_t *len, uint8_t *const* seq, int32_t min_len, int32_t max_sub_occ, mb_sai_v *v)
-{
+{ // identical to mb_seed_intv() though the order of intervals is often different
 	const int max_batch_size = 50;
 	mb_smem_entry_t *s;
 	int32_t i, j, n_s, *nv;

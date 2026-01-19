@@ -249,7 +249,7 @@ void mb_bwt_extend(const mb_bwt_t *bwt, const mb_sai_t *ik, mb_sai_t ok[4], int 
 // backward search from pos
 static int64_t mb_bwt_back(const mb_bwt_t *f, const uint8_t *q, int64_t st, int64_t pos, int64_t min_occ, mb_sai_t *p)
 {
-	int64_t i;
+	int64_t i = pos - 1;
 	mb_sai_t ok[4];
 	assert(q[pos] < 4); // the backward pass never involves N
 	if (f->pre && pos - st >= f->pre_len) { // then use precomputed k-mer index instead of base-by-base extension
