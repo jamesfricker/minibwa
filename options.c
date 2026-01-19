@@ -7,7 +7,7 @@ void mb_opt_init(mb_opt_t *opt)
 	// seeding options
 	opt->min_len = 19;
 	opt->max_sub_occ = 10;
-	opt->max_occ = 100;
+	opt->max_occ = 250;
 	// chaining options
 	opt->max_chain_skip = 25;
 	opt->max_chain_iter = 5000;
