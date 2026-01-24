@@ -70,6 +70,7 @@ void mb_split_hit(mb_hit_t *r, mb_hit_t *r2, int n, int qlen, mb_anchor_t *a, co
 mb_hit_t *mb_map_sai(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, const uint8_t *seq, mb_sai_v *u, int32_t *n_hit_, mb_tbuf_t *b, const char *qname);
 
 void radix_sort_mb64(uint64_t *st, uint64_t *en);
+void radix_sort_mb128x(mb128_t *st, mb128_t *en);
 
 // defined in format.c
 void mb_fmt_paf_basic(kstring_t *s, const l2b_t *l2b, int64_t qlen, const mb_hit_t *p, const char *qname);

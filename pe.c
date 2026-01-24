@@ -28,15 +28,17 @@ void mb_pestat(void *km, const mb_opt_t *opt, int32_t n_frag, const int32_t *seg
 	for (i = 0; i < n_frag; ++i) {
 		const mb_hit_t *r[2];
 		int32_t off, dir;
-		int64_t dist;
+		int64_t dist, pos[2];
 		if (seg_cnt[i] != 2) continue;
 		off = seg_off[i];
 		r[0] = mb_select_unique_se(n_hit[off + 0], hit[off + 0]);
 		r[1] = mb_select_unique_se(n_hit[off + 1], hit[off + 1]);
 		if (r[0] == 0 || r[1] == 0) continue;
 		if (r[0]->tid != r[1]->tid) continue; // not on the same contig
-		dist = r[0]->ts > r[1]->ts? r[0]->ts - r[1]->ts : r[1]->ts - r[0]->ts;
-		dir = ((int32_t)r[0]->rev << 1 | (int32_t)r[1]->rev) ^ (r[0]->ts < r[1]->ts? 0 : 3);
+		pos[0] = r[0]->rev? r[0]->te : r[0]->ts; // 5'-end of the read
+		pos[1] = r[1]->rev? r[1]->te : r[1]->ts;
+		dist = pos[0] > pos[1]? pos[0] - pos[1] : pos[1] - pos[0];
+		dir = ((int32_t)r[0]->rev << 1 | (int32_t)r[1]->rev) ^ (pos[0] < pos[1]? 0 : 3);
 		if (dist < opt->max_pe_ins) {
 			if (is[dir].n == is[dir].m)
 				Kgrow(km, uint64_t, is[dir].a, is[dir].n, is[dir].m);
@@ -71,14 +73,55 @@ void mb_pestat(void *km, const mb_opt_t *opt, int32_t n_frag, const int32_t *seg
 			if (q->a[i] >= r->low && q->a[i] <= r->high)
 				r->std += (q->a[i] - r->avg) * (q->a[i] - r->avg);
 		r->std = sqrt(r->std / x);
-		fprintf(stderr, "[M::%s::%c%c] (25, 50, 75) percentile: (%d, %d, %d); mean and std.dev: (%.2f, %.2f)\n",
-			__func__, "FR"[d>>1&1], "FR"[d&1], p25, p50, p75, r->avg, r->std);
+		if (kom_verbose >= 3)
+			fprintf(stderr, "[M::%s::%c%c] (25, 50, 75) percentile: (%d, %d, %d); mean and std.dev: (%.2f, %.2f)\n",
+				__func__, "FR"[d>>1&1], "FR"[d&1], p25, p50, p75, r->avg, r->std);
 		r->low  = (int)(p25 - MAPPING_BOUND * (p75 - p25) + .499);
 		r->high = (int)(p75 + MAPPING_BOUND * (p75 - p25) + .499);
 		if (r->low  > r->avg - MAX_STDDEV * r->std) r->low  = (int)(r->avg - MAX_STDDEV * r->std + .499);
 		if (r->high < r->avg + MAX_STDDEV * r->std) r->high = (int)(r->avg + MAX_STDDEV * r->std + .499);
 		if (r->low < 1) r->low = 1;
-		fprintf(stderr, "[M::%s::%c%c] low and high boundaries for proper pairs: (%d, %d)\n", __func__, "FR"[d>>1&1], "FR"[d&1], r->low, r->high);
+		if (kom_verbose >= 3)
+			fprintf(stderr, "[M::%s::%c%c] low and high boundaries for proper pairs: (%d, %d)\n", __func__, "FR"[d>>1&1], "FR"[d&1], r->low, r->high);
 		kfree(km, q->a);
 	}
 }
+/*
+void mb_pair(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_t n_hit[2], mb_hit_t *hit[2], const mb_pestat_t pes[4])
+{
+	int32_t r, i, n_pa, y[4];
+	mb128_t *pa;
+	if (n_hit[0] + n_hit[1] == 0) return;
+	pa = Kcalloc(km, mb128_t, n_hit[0] + n_hit[1]);
+	for (r = n_pa = 0; r < 2; ++r) {
+		for (i = 0; i < n_hit[r]; ++i) {
+			mb128_t *p = &pa[n_pa++];
+			const mb_hit_t *h = &hit[r][i];
+			p->x = l2b->ctg[h->tid].off + h->ts;
+			p->y = (uint64_t)i << 2 | (uint64_t)h->rev << 1 | r;
+		}
+	}
+	radix_sort_mb128x(pa, pa + n_pa);
+	y[0] = y[1] = y[2] = y[3] = -1;
+	for (i = 0; i < n_pa; ++i) {
+		mb128_t *pi = &pa[i];
+		mb_hit_t *hi = &hit[pi->y&1][pi->y>>2];
+		for (r = 0; r < 2; ++r) {
+			int which, dir = r << 1 | (pi->y>>1&1);
+			if (pes[dir].failed) continue; // invalid orientation
+			which = r << 1 | ((pi->y&1) ^ 1);
+			if (y[which] < 0) continue; // no previous hit
+			for (k = y[which]; k >= 0; --k) {
+				mb128_t *pk = &pa[k];
+				mb_hit_t *hk = &hit[pk->y&1][pk->y>>2];
+				int64_t dist;
+				if ((pk->y&3) != which) continue;
+				if (hi->tid != hk->tid) break;
+				dist = hi->ts - hk->ts;
+				if (dist >= 
+			}
+		}
+	}
+	kfree(km, pa);
+}
+*/
