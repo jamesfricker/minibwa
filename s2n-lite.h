@@ -21,7 +21,9 @@ static inline __m128i _mm_blendv_epi8(__m128i a, __m128i b, __m128i mask) { retu
 
 static inline __m128i _mm_set1_epi8(int a) { return vdupq_n_u8(a); }
 static inline __m128i _mm_add_epi8(__m128i a, __m128i b) { return vaddq_u8(a, b); }
+static inline __m128i _mm_adds_epu8(__m128i a, __m128i b) { return vqaddq_u8(a, b); }
 static inline __m128i _mm_sub_epi8(__m128i a, __m128i b) { return vsubq_u8(a, b); }
+static inline __m128i _mm_subs_epu8(__m128i a, __m128i b) { return vqsubq_u8(a, b); }
 static inline __m128i _mm_cmpeq_epi8(__m128i a, __m128i b) { return vceqq_u8(a, b); }
 static inline __m128i _mm_cmpgt_epi8(__m128i a, __m128i b) { return vcgtq_s8(vreinterpretq_s8_u8(a), vreinterpretq_s8_u8(b)); }
 static inline __m128i _mm_max_epi8(__m128i a, __m128i b) { return vreinterpretq_u8_s8(vmaxq_s8(vreinterpretq_s8_u8(a), vreinterpretq_s8_u8(b))); }
@@ -35,12 +37,6 @@ static inline __m128i _mm_max_epi16(__m128i a, __m128i b) { return vreinterpretq
 static inline __m128i _mm_adds_epi16(__m128i a, __m128i b) { return vreinterpretq_u8_s16(vqaddq_s16(vreinterpretq_s16_u8(a), vreinterpretq_s16_u8(b))); }
 static inline __m128i _mm_subs_epi16(__m128i a, __m128i b) { return vreinterpretq_u8_s16(vqsubq_s16(vreinterpretq_s16_u8(a), vreinterpretq_s16_u8(b))); }
 static inline __m128i _mm_subs_epu16(__m128i a, __m128i b) { return vreinterpretq_u8_u16(vqsubq_u16(vreinterpretq_u16_u8(a), vreinterpretq_u16_u8(b))); }
-static inline int _mm_movemask_epi8(__m128i a)
-{
-	uint8x16_t vmask = { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
-	uint8x16_t vtmp = vandq_u8(vreinterpretq_u8_s8(vshrq_n_s8(vreinterpretq_s8_u8(a), 7)), vmask);
-	return (int)(vaddv_u8(vget_low_u8(vtmp)) | (vaddv_u8(vget_high_u8(vtmp)) << 8));
-}
 
 #define _mm_extract_epi16(a, imm8) vgetq_lane_s16(vreinterpretq_s16_u8(a), (imm8))
 #define _mm_insert_epi16(a, b, imm8) vreinterpretq_u8_s16(vsetq_lane_s16((b), vreinterpretq_s16_u8(a), (imm8)))

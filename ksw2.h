@@ -18,8 +18,10 @@
 #define KSW_EZ_SPLICE_CMPLX 0x800  // use the miniprot splice model
 #define KSW_EZ_SPLICE_SCORE 0x1000 // use splice score
 
+#define KSW_LL_STOP  0x20000
+#define KSW_LL_SUBO  0x40000
+
 // The subset of CIGAR operators used by ksw code.
-// Use MM_CIGAR_* from minimap.h if you need the full list.
 #define KSW_CIGAR_MATCH  0
 #define KSW_CIGAR_INS    1
 #define KSW_CIGAR_DEL    2
@@ -41,6 +43,13 @@ typedef struct {
 	int reach_end;
 	uint32_t *cigar;
 } ksw_extz_t;
+
+typedef struct {
+	int score; // best score
+	int te, qe; // target end and query end
+	int score2, te2; // second best score and ending position on the target
+	int tb, qb; // target start and query start
+} ksw_llrst_t;
 
 /**
  * NW-like extension
@@ -91,6 +100,8 @@ int ksw_gg2(void *km, int qlen, const uint8_t *query, int tlen, const uint8_t *t
 int ksw_gg2_sse(void *km, int qlen, const uint8_t *query, int tlen, const uint8_t *target, int8_t m, const int8_t *mat, int8_t gapo, int8_t gape, int w, int *m_cigar_, int *n_cigar_, uint32_t **cigar_);
 
 void *ksw_ll_qinit(void *km, int size, int qlen, const uint8_t *query, int m, const int8_t *mat);
+ksw_llrst_t ksw_ll_u8_core(void *q_, int tlen, const uint8_t *target, int _gapo, int _gape, int xtra);
+ksw_llrst_t ksw_ll_i16_core(void *q_, int tlen, const uint8_t *target, int _gapo, int _gape, int xtra);
 int ksw_ll_i16(void *q, int tlen, const uint8_t *target, int gapo, int gape, int *qe, int *te);
 
 #ifdef __cplusplus
