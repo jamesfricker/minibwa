@@ -24,12 +24,13 @@ typedef struct {
     int32_t n_seq, n_frag, n_sb;
 	int32_t *n_hit, *seg_off, *seg_cnt;
 	int32_t *sb_off, *sb_cnt;
+	mb_pestat_t pes[4];
 	mb_bseq1_t *seq;
 	mb_hit_t **hit;
 	mb_tbuf_t **tbuf;
 } step_t;
 
-static void worker_for_batch(void *data, long i, int tid)
+static void worker_for_se_batch(void *data, long i, int tid)
 {
 	step_t *s = (step_t*)data;
 	const mb_opt_t *opt = s->p->opt;
@@ -73,6 +74,21 @@ static void worker_for_batch(void *data, long i, int tid)
 	kfree(km, sai);
 	kfree(km, seq);
 	kfree(km, len);
+}
+
+static void worker_for_pe(void *data, long i, int tid)
+{
+	step_t *s = (step_t*)data;
+	mb_tbuf_t *b = s->tbuf[tid];
+	int32_t off, r, len[2];
+	char *seq[2];
+	if (s->seg_cnt[i] != 2) return;
+	off = s->seg_off[i];
+	for (r = 0; r < 2; ++r) {
+		seq[r] = s->seq[off + r].seq;
+		len[r] = s->seq[off + r].l_seq;
+	}
+	mb_pair(mb_tbuf_km(b), s->p->opt, s->p->idx->l2b, &s->n_hit[off], &s->hit[off], s->pes, len, seq);
 }
 
 static void *worker_pipeline(void *shared, int step, void *in)
@@ -128,13 +144,13 @@ static void *worker_pipeline(void *shared, int step, void *in)
 		} else free(s);
     } else if (step == 1) { // step 1: map
 		step_t *s = (step_t*)in;
-		kt_for(opt->n_thread, worker_for_batch, in, s->n_sb);
+		kt_for(opt->n_thread, worker_for_se_batch, in, s->n_sb);
 		if (opt->flag & MB_F_PE) {
 			void *km;
 			km = opt->flag & MB_F_NO_KALLOC? 0 : km_init();
-			mb_pestat_t pes[4];
-			mb_pestat(km, opt, s->n_frag, s->seg_off, s->seg_cnt, s->n_hit, s->hit, pes);
+			mb_pestat(km, opt, s->n_frag, s->seg_off, s->seg_cnt, s->n_hit, s->hit, s->pes);
 			if (km) km_destroy(km);
+			kt_for(opt->n_thread, worker_for_pe, in, s->n_frag);
 		}
 		return in;
     } else if (step == 2) { // step 2: output

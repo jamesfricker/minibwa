@@ -71,5 +71,5 @@ map-algo.o: mbpriv.h minibwa.h l2bit.h bwt.h kommon.h kalloc.h ksort.h
 map-main.o: kommon.h mbpriv.h minibwa.h l2bit.h bwt.h bseq.h kalloc.h
 map-main.o: kthread.h ketopt.h
 options.o: minibwa.h
-pe.o: mbpriv.h minibwa.h l2bit.h bwt.h kommon.h kalloc.h
+pe.o: mbpriv.h minibwa.h l2bit.h bwt.h kommon.h kalloc.h ksw2.h
 seed.o: mbpriv.h minibwa.h l2bit.h bwt.h kommon.h kalloc.h ksort.h

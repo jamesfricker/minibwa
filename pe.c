@@ -167,7 +167,7 @@ static void mb_pair_hits(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_
 	kfree(km, pa);
 }
 
-static void mb_matesw_align(void *km, const mb_opt_t *opt, int32_t qlen, uint8_t *qseq, int32_t tlen, uint8_t *tseq, mb_hit_t *h)
+static void mb_matesw_align(void *km, const mb_opt_t *opt, int32_t qlen, uint8_t *qseq, int32_t tlen, uint8_t *tseq, mb_hit_t *h, ksw_extz_t *ez)
 {
 	int8_t mat[25];
 	int32_t max_sc = qlen < tlen? qlen : tlen;
@@ -193,24 +193,23 @@ static void mb_matesw_align(void *km, const mb_opt_t *opt, int32_t qlen, uint8_t
 	kfree(km, qp);
 	if (rst.score * opt->a >= opt->min_dp_max) {
 		int32_t te = rst.te + 1, qe = rst.qe + 1;
-		ksw_extz_t ez;
 		mb_seq_rev(qe, qseq);
 		mb_seq_rev(te, tseq);
 		ksw_gen_ts_mat(5, mat, opt->a, opt->b, opt->b_ts, opt->b_ambi);
-		ksw_extz2_sse(km, qe, qseq, te, tseq, 5, mat, opt->q, opt->e, opt->bw, opt->zdrop, opt->end_bonus, KSW_EZ_EXTZ_ONLY|KSW_EZ_RIGHT|KSW_EZ_REV_CIGAR, &ez);
-		if (ez.n_cigar > 0 && ez.max >= opt->min_dp_max) {
-			mb_append_cigar(h, ez.n_cigar, ez.cigar);
+		ksw_extz2_sse(km, qe, qseq, te, tseq, 5, mat, opt->q, opt->e, opt->bw, opt->zdrop, opt->end_bonus, KSW_EZ_EXTZ_ONLY|KSW_EZ_RIGHT|KSW_EZ_REV_CIGAR, ez);
+		if (ez->n_cigar > 0 && ez->max >= opt->min_dp_max) {
+			mb_append_cigar(h, ez->n_cigar, ez->cigar);
 			h->qe = qe, h->te = te;
-			h->ts = te - (ez.reach_end? ez.mqe_t + 1 : ez.max_t + 1);
-			h->qs = qe - (ez.reach_end? 0 : ez.max_q + 1);
-			h->p->dp_max = ez.max;
-			h->p->dp_score = ez.score;
-			h->p->dp_max2 = (int32_t)((double)ez.max / rst.score * rst.score2 + .499);
+			h->ts = te - (ez->reach_end? ez->mqe_t + 1 : ez->max_t + 1);
+			h->qs = qe - (ez->reach_end? 0 : ez->max_q + 1);
+			h->p->dp_max = ez->max;
+			h->p->dp_score = ez->score;
+			h->p->dp_max2 = (int32_t)((double)ez->max / rst.score * rst.score2 + .499);
 			h->score = h->score0 = rst.score;
 			h->subsc = rst.score2;
 			h->cnt = 0, h->as = -1;
 			h->parent = MB_PARENT_UNSET;
-			kfree(km, ez.cigar);
+			kfree(km, ez->cigar);
 		}
 		mb_seq_rev(qe, qseq);
 		mb_seq_rev(te, tseq);
@@ -222,7 +221,7 @@ typedef struct {
 	mb_hit_t *a;
 } mb_hit_v;
 
-static void mb_matesw_core(void *km, const mb_opt_t *opt, const l2b_t *l2b, const mb_pestat_t pes[4], const mb_hit_t *h0, int32_t len, uint8_t *seq[2], mb_hit_v *h1)
+static void mb_matesw_core(void *km, const mb_opt_t *opt, const l2b_t *l2b, const mb_pestat_t pes[4], const mb_hit_t *h0, int32_t len, uint8_t *seq[2], mb_hit_v *h1, ksw_extz_t *ez)
 {
 	int32_t r, skip[4];
 	int64_t pos5;
@@ -246,7 +245,7 @@ static void mb_matesw_core(void *km, const mb_opt_t *opt, const l2b_t *l2b, cons
 			mb_hit_t ht;
 			ref = Kmalloc(km, uint8_t, te - ts);
 			l2b_getseq(l2b, h0->tid, ts, te, ref);
-			mb_matesw_align(km, opt, len, seq[is_rev], te - ts, ref, &ht);
+			mb_matesw_align(km, opt, len, seq[is_rev], te - ts, ref, &ht, ez);
 			if (ht.p) { // a good hit found
 				ht.tid = h0->tid;
 				ht.ts += ts, ht.te += ts;
@@ -264,12 +263,15 @@ static void mb_matesw_core(void *km, const mb_opt_t *opt, const l2b_t *l2b, cons
 	}
 }
 
-static int32_t mb_matesw(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_t n_hit[2], mb_hit_t *hit[2], const mb_pestat_t pes[4], int32_t qlen[2], uint8_t *qseq[2])
+static int32_t mb_matesw(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_t n_hit[2], mb_hit_t *hit[2], const mb_pestat_t pes[4], int32_t qlen[2], char *const qseq[2])
 {
 	int32_t r, i, j, n_res, max[2] = {0, 0}, ori_sum = n_hit[0] + n_hit[1];
 	uint64_t rng = 0, *a;
 	mb_hit_v ha[2];
 	uint8_t *qs[2][2];
+	ksw_extz_t ez;
+
+	// collect rescue candidates
 	if (opt->max_rescue == 0) return 0;
 	for (r = 0; r < 2; ++r) // find the max score
 		for (i = 0; i < n_hit[r]; ++i)
@@ -281,7 +283,7 @@ static int32_t mb_matesw(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_
 	if (n_res == 0) return 0; // nothing to rescue
 	if (n_res > opt->max_rescue) n_res = opt->max_rescue;
 	a = Kcalloc(km, uint64_t, n_res);
-	for (r = j = 0; r < 2; ++r) {
+	for (r = j = 0; r < 2; ++r) { // candidates for rescue
 		for (i = 0; i < n_hit[r]; ++i) {
 			if (hit[r][i].pp == 0 && hit[r][i].p->dp_max >= max[r] - opt->pen_unpair) { // reservior sampling
 				int32_t y;
@@ -291,27 +293,38 @@ static int32_t mb_matesw(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_
 		}
 		ha[r].n = ha[r].m = n_hit[r], ha[r].a = hit[r];
 	}
+
+	// prepare query sequences
 	qs[0][0] = Kcalloc(km, uint8_t, (qlen[0] + qlen[1]) * 2);
 	qs[0][1] = qs[0][0] + qlen[0];
 	qs[1][0] = qs[0][1] + qlen[0];
 	qs[1][1] = qs[1][0] + qlen[1];
 	for (r = 0; r < 2; ++r) {
-		memcpy(qs[r][0], qseq[r], qlen[r]);
-		for (i = 0; i < qlen[r]; ++i)
-			qs[r][1][qlen[r] - 1 - r] = qseq[r][i] < 4? 3 - qseq[r][i] : 4;
+		for (i = 0; i < qlen[r]; ++i) {
+			int32_t c = kom_nt4_table[(uint8_t)qseq[r][i]];
+			qs[r][0][i] = c;
+			qs[r][1][qlen[r] - 1 - r] = c < 4? 3 - c : 4;
+		}
 	}
+
+	// do alignment
+	memset(&ez, 0, sizeof(ez));
+	ez.m_cigar = 8;
+	ez.cigar = Kmalloc(km, uint32_t, ez.m_cigar);
 	for (i = 0; i < n_res; ++i) {
 		int32_t r = a[i]>>32&1, j = (int32_t)a[i];
-		mb_matesw_core(km, opt, l2b, pes, &hit[r][j], qlen[!r], qs[!r], &ha[!r]);
+		mb_matesw_core(km, opt, l2b, pes, &hit[r][j], qlen[!r], qs[!r], &ha[!r], &ez);
 	}
 	for (r = 0; r < 2; ++r)
 		n_hit[r] = ha[r].n, hit[r] = ha[r].a;
+
+	kfree(km, ez.cigar);
 	kfree(km, qs[0][0]);
 	kfree(km, a);
 	return n_hit[0] + n_hit[1] - ori_sum;
 }
 
-void mb_pair(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_t n_hit[2], mb_hit_t *hit[2], const mb_pestat_t pes[4], int32_t qlen[2], uint8_t *qseq[2])
+void mb_pair(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_t n_hit[2], mb_hit_t *hit[2], const mb_pestat_t pes[4], int32_t qlen[2], char *const qseq[2])
 {
 	mb_pairaux_t paux;
 	mb_pair_hits(km, opt, l2b, n_hit, hit, pes, &paux);
