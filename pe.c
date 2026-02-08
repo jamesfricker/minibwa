@@ -179,18 +179,21 @@ static void mb_pair_hits(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_
 	kfree(km, pa);
 }
 
-static int32_t mb_ungap(void *km, int32_t qlen, const uint8_t *qseq, int32_t tlen, const uint8_t *tseq, int32_t kmer, int32_t *max_i, int32_t *n_good)
-{
+static int32_t mb_ungap(void *km, int32_t qlen, const uint8_t *qseq, int32_t tlen, const uint8_t *tseq, int32_t kmer, int32_t *max_i, int32_t *n_good, int32_t *n_kmer)
+{ // a linear algorithm to find ungapped alignment
 	int32_t i, l, cap = 1 << kmer*2, mask = cap - 1, max, *a;
 	uint16_t *h, x;
-	*max_i = -1, *n_good = 0;
+	*max_i = -1, *n_good = *n_kmer = 0;
 	if (qlen >= UINT16_MAX) return 0;
 	a = Kcalloc(km, int32_t, tlen);
 	h = Kcalloc(km, uint16_t, cap);
 	for (i = l = 0, x = 0; i < qlen; ++i) {
 		if (qseq[i] < 4) {
 			x = (x << 2 | qseq[i]) & mask;
-			if (++l >= kmer) h[x] = i;
+			if (++l >= kmer) {
+				if (h[x] == 0) ++*n_kmer; // n_kmer is the number of distinct k-mers on the query sequence
+				h[x] = i;
+			}
 		} else x = 0, l = 0;
 	}
 	for (i = l = 0, x = 0; i < tlen; ++i) {
@@ -198,7 +201,7 @@ static int32_t mb_ungap(void *km, int32_t qlen, const uint8_t *qseq, int32_t tle
 			x = (x << 2 | tseq[i]) & mask;
 			if (++l >= kmer) {
 				if (h[x] > 0 && i >= h[x])
-					++a[i - h[x]];
+					++a[i - h[x]]; // inspired by the Hough transform for line finding
 			}
 		} else x = 0, l = 0;
 	}
@@ -304,20 +307,20 @@ static const mb_hit_t *mb_matesw_core(void *km, const mb_opt_t *opt, const l2b_t
 		if (te > l2b->ctg[h0->tid].len) te = l2b->ctg[h0->tid].len;
 		if (te - ts > len) {
 			int64_t ts2 = ts, te2 = te;
-			int32_t max_ug, max_i, n_good;
+			int32_t max_ug, max_i, n_good, n_kmer;
 			uint8_t *ref;
 			mb_hit_t ht;
 			ht.p = 0;
 			ref = Kmalloc(km, uint8_t, te - ts);
 			l2b_getseq(l2b, h0->tid, ts, te, ref);
-			max_ug = mb_ungap(km, len, seq[is_rev], te - ts, ref, 7, &max_i, &n_good);
+			max_ug = mb_ungap(km, len, seq[is_rev], te - ts, ref, 7, &max_i, &n_good, &n_kmer);
 			if (max_ug >= 10 && max_ug >= len>>1 && n_good == 1) {
 				ts2 = ts + max_i - len / 2;
 				te2 = ts2 + len * 2;
 				if (ts2 < ts) ts2 = ts;
 				if (te2 > te) te2 = te;
 			}
-			if (max_ug >= 10)
+			if (max_ug >= 10 || max_ug >= n_kmer * 0.33)
 				mb_matesw_align(km, opt, len, seq[is_rev], te2 - ts2, &ref[ts2 - ts], &ht, ez);
 			if (ht.p) { // a good hit found
 				ht.tid = h0->tid;
