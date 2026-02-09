@@ -377,9 +377,9 @@ static void mb_align_pair(void *km, const mb_opt_t *opt, int qlen, const uint8_t
 		ksw_reset_extz(ez);
 		ez->zdropped = 1;
 	} else if (opt->q == opt->q2 && opt->e == opt->e2) { // affine gap
-		ksw_extz2_sse(km, qlen, qseq, tlen, tseq, 5, mat, opt->q, opt->e, w, zdrop, end_bonus, ksw_flag, ez);
+		ksw_extz2_sse(km, qlen, qseq, tlen, tseq, 5, mat, opt->q, opt->e, w, zdrop * opt->a, end_bonus, ksw_flag, ez);
 	} else { // dual affine gap
-		ksw_extd2_sse(km, qlen, qseq, tlen, tseq, 5, mat, opt->q, opt->e, opt->q2, opt->e2, w, zdrop, end_bonus, ksw_flag, ez);
+		ksw_extd2_sse(km, qlen, qseq, tlen, tseq, 5, mat, opt->q, opt->e, opt->q2, opt->e2, w, zdrop * opt->a, end_bonus, ksw_flag, ez);
 	}
 	if (kom_dbg_flag & MB_DBG_ALN_SEQ) {
 		int i;
@@ -689,6 +689,7 @@ static void mb_align1(void *km, const mb_opt_t *opt, const mb_idx_t *mi, int qle
 			// test Z-drop and inversion Z-drop
 			if ((zdrop_code = mm_test_zdrop(km, opt, qseq, tseq, ez->n_cigar, ez->cigar, mat)) != 0)
 				mb_align_pair(km, opt, qe - qs, qseq, te - ts, tseq, mat, bw1, -1, zdrop_code == 2? opt->zdrop_inv : opt->zdrop, ksw_flag, ez); // second pass: lift approximate
+			if (kom_dbg_flag & MB_DBG_AN_POS) fprintf(stderr, "AD\t%d\t%ld\t%ld\t%d\t%d\t%d\t%d\n", r->as, (long)ts, (long)te, qs, qe, zdrop_code, ez->zdropped);
 			// update CIGAR
 			if (ez->n_cigar > 0)
 				mb_append_cigar(r, ez->n_cigar, ez->cigar);
