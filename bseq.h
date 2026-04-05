@@ -40,16 +40,8 @@ static inline int mb_qname_same(const char *s1, const char *s2)
 
 static inline void mb_revcomp_bseq(mb_bseq1_t *s)
 {
-	int i, t, l = s->l_seq;
-	for (i = 0; i < l>>1; ++i) {
-		t = s->seq[l - i - 1];
-		s->seq[l - i - 1] = kom_comp_table[(uint8_t)s->seq[i]];
-		s->seq[i] = kom_comp_table[t];
-	}
-	if (l&1) s->seq[l>>1] = kom_comp_table[(uint8_t)s->seq[l>>1]];
-	if (s->qual)
-		for (i = 0; i < l>>1; ++i)
-			t = s->qual[l - i - 1], s->qual[l - i - 1] = s->qual[i], s->qual[i] = t;
+	kom_revcomp(s->l_seq, s->seq);
+	if (s->qual) kom_reverse(char, s->l_seq, s->qual);
 }
 
 #ifdef __cplusplus
