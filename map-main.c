@@ -192,14 +192,11 @@ static void *worker_pipeline(void *shared, int step, void *in)
 				if (s->n_hit[i] > 0) { // the query has at least one hit
 					for (j = 0; j < s->n_hit[i]; ++j) {
 						const mb_hit_t *h = &s->hit[i][j];
-						if (h->parent == h->id) { // primary
-							mb_fmt_paf(km, &out, idx->l2b, t, h, opt->flag, seg_en - seg_st, i - seg_st);
-						} else if (n_sec < opt->out_n) { // secondary
-							mb_fmt_paf(km, &out, idx->l2b, t, h, opt->flag, seg_en - seg_st, i - seg_st);
-							++n_sec;
-						}
+						if (h->parent == h->id || n_sec < opt->out_n)
+							mb_format(km, &out, idx->l2b, t, seg_en - seg_st, &s->n_hit[seg_st], &s->hit[seg_st], j, opt->flag, i - seg_st);
+						if (h->parent != h->id) ++n_sec;
 					}
-				} else if (opt->flag & MB_F_WRITE_UNMAP) { // TODO: output unmapped reads
+				} else if (!(opt->flag & MB_F_NO_UNMAP)) { // TODO: output unmapped reads
 				}
 			}
 			fwrite(out.s, 1, out.l, s->p->fp_out);
@@ -327,7 +324,7 @@ static inline void yes_or_no(mb_opt_t *opt, uint64_t flag, int long_idx, const c
 #endif
 int main_map(int argc, char *argv[])
 {
-	const char *opt_str = "x:o:k:c:m:p:A:B:b:O:E:t:K:N:CPyR:a";
+	const char *opt_str = "x:o:k:c:m:p:A:B:b:O:E:t:K:N:CPyR:aU";
 	int32_t c;
 	mb_idx_t *idx;
 	mb_opt_t mo;
@@ -359,6 +356,7 @@ int main_map(int argc, char *argv[])
 		else if (c == 'A') mo.a = atoi(o.arg);
 		else if (c == 'B') mo.b = atoi(o.arg);
 		else if (c == 'a') mo.flag |= MB_F_SAM;
+		else if (c == 'U') mo.flag |= MB_F_NO_UNMAP;
 		else if (c == 'C') mo.flag |= MB_F_NO_ALN;
 		else if (c == 'y') mo.flag |= MB_F_COPY_COMMENT;
 		else if (c == 'P') mo.flag &= ~MB_F_PE;

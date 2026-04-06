@@ -208,7 +208,7 @@ static int32_t mb_ungap(void *km, int32_t qlen, const uint8_t *qseq, int32_t tle
 	for (i = 0, max = 0; i < tlen; ++i)
 		if (max < a[i])
 			max = a[i], *max_i = i;
-	for (i = 0, n_good = 0; i < tlen; ++i)
+	for (i = 0, *n_good = 0; i < tlen; ++i)
 		if (a[i] > max>>1) ++*n_good;
 	kfree(km, h);
 	kfree(km, a);

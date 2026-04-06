@@ -9,7 +9,7 @@ static char mb_rg_id[256];
  * PAF output *
  **************/
 
-void mb_fmt_paf(void *km, kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, const mb_hit_t *p, uint64_t opt_flag, int n_seg, int seg_idx)
+void mb_fmt_paf(kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, const mb_hit_t *p, uint64_t opt_flag, int n_seg, int seg_idx)
 {
 	kom_sprintf_lite(s, "%s", t->name);
 	if (n_seg > 1 && seg_idx >= 0)
@@ -112,6 +112,14 @@ int mb_fmt_sam_hdr(kstring_t *str, const l2b_t *idx, const char *rg, const char 
 	return ret;
 }
 
-void mb_fmt_sam(void *km, kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, int32_t n_hit, const mb_hit_t *hit, int32_t hit_idx, int64_t opt_flag, int32_t n_seg, int seg_idx)
+void mb_fmt_sam(void *km, kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, int32_t n_seg, const int32_t *n_hit, mb_hit_t *const*hit, int32_t hit_idx, int64_t opt_flag, int seg_idx)
 {
+}
+
+void mb_format(void *km, kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, int32_t n_seg, const int32_t *n_hit, mb_hit_t *const*hit, int32_t hit_idx, int64_t opt_flag, int seg_idx)
+{
+	if (opt_flag & MB_F_SAM)
+		mb_fmt_sam(km, s, l2b, t, n_seg, n_hit, hit, hit_idx, opt_flag, seg_idx);
+	else
+		mb_fmt_paf(s, l2b, t, &hit[seg_idx][hit_idx], opt_flag, n_seg, seg_idx);
 }
