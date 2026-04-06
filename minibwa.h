@@ -17,6 +17,8 @@
 #define MB_F_WRITE_DS         (0x200LL)
 #define MB_F_WRITE_CS         (0x400LL)
 #define MB_F_WRITE_MD         (0x800LL)
+#define MB_F_2ND_SEQ          (0x1000LL)
+#define MB_F_SOFTCLIP         (0x2000LL)
 
 #define MB_CIGAR_MATCH      0
 #define MB_CIGAR_INS        1
@@ -81,7 +83,7 @@ typedef struct mb_idx_s mb_idx_t;
 typedef struct {
 	uint32_t cap;                      // the capacity of cigar[]
 	int32_t dp_score, dp_max, dp_max2; // DP score; score of the max-scoring segment; score of the best alternate mappings
-	uint32_t n_ambi;                   // number of ambiguous bases;
+	uint32_t n_ambi:31, cs:1;          // number of ambiguous bases;
 	int32_t n_cigar;                   // number of cigar operations in cigar[]
 	uint32_t cigar[];                  // cs/MD is appended at the end
 } mb_extra_t;
