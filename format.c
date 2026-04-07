@@ -171,7 +171,7 @@ static void write_sam_cigar(kstring_t *s, int sam_flag, int in_tag, int qlen, co
 		clip_len[1] = r->rev? r->qs : qlen - r->qe;
 		if (in_tag) {
 			int clip_char = (((sam_flag&0x800) || ((sam_flag&0x100) && (opt_flag&MB_F_2ND_SEQ))) &&
-							 !(opt_flag&MB_F_SOFTCLIP)) ? 5 : 4;
+							 !(opt_flag&MB_F_SUPP_SOFT)) ? 5 : 4;
 			kom_sprintf_lite(s, "\tCG:B:I");
 			if (clip_len[0]) kom_sprintf_lite(s, ",%u", clip_len[0]<<4|clip_char);
 			for (k = 0; k < r->p->n_cigar; ++k)
@@ -179,7 +179,7 @@ static void write_sam_cigar(kstring_t *s, int sam_flag, int in_tag, int qlen, co
 			if (clip_len[1]) kom_sprintf_lite(s, ",%u", clip_len[1]<<4|clip_char);
 		} else {
 			int clip_char = (((sam_flag&0x800) || ((sam_flag&0x100) && (opt_flag&MB_F_2ND_SEQ))) &&
-							 !(opt_flag&MB_F_SOFTCLIP)) ? 'H' : 'S';
+							 !(opt_flag&MB_F_SUPP_SOFT)) ? 'H' : 'S';
 			assert(clip_len[0] < qlen && clip_len[1] < qlen);
 			if (clip_len[0]) kom_sprintf_lite(s, "%d%c", clip_len[0], clip_char);
 			for (k = 0; k < r->p->n_cigar; ++k)
@@ -265,7 +265,7 @@ void mb_fmt_sam(void *km, kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, i
 		if (t->qual) sam_write_sq(s, t->qual, t->l_seq, 0, 0);
 		else kom_sprintf_lite(s, "*");
 	} else {
-		if ((flag & 0x900) == 0 || (opt_flag & MB_F_SOFTCLIP)) {
+		if ((flag & 0x900) == 0 || (opt_flag & MB_F_SUPP_SOFT)) {
 			sam_write_sq(s, t->seq, t->l_seq, r->rev, r->rev);
 			kom_sprintf_lite(s, "\t");
 			if (t->qual) sam_write_sq(s, t->qual, t->l_seq, r->rev, 0);
@@ -324,5 +324,5 @@ void mb_format(void *km, kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, in
 	if (opt_flag & MB_F_SAM)
 		mb_fmt_sam(km, s, l2b, t, n_seg, n_hit, hit, hit_idx, opt_flag, seg_idx);
 	else
-		mb_fmt_paf(s, l2b, t, &hit[seg_idx][hit_idx], opt_flag, n_seg, seg_idx);
+		mb_fmt_paf(s, l2b, t, hit_idx >= 0? &hit[seg_idx][hit_idx] : 0, opt_flag, n_seg, seg_idx);
 }

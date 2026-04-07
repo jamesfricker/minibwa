@@ -198,6 +198,7 @@ static void *worker_pipeline(void *shared, int step, void *in)
 						n_sec += (h->parent != h->id);
 					}
 				} else if (!(opt->flag & MB_F_NO_UNMAP)) { // TODO: output unmapped reads
+					mb_format(km, &out, idx->l2b, t, seg_en - seg_st, &s->n_hit[seg_st], &s->hit[seg_st], -1, opt->flag, i - seg_st);
 				}
 			}
 			fwrite(out.s, 1, out.l, s->p->fp_out);
@@ -304,6 +305,8 @@ static int usage(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "    --rescue=INT     mate rescue for up to INT candidates [%d]\n", opt->max_rescue);
 	fprintf(fp, "  Input/Output:\n");
 	fprintf(fp, "    -t INT           number of worker threads [%d]\n", opt->n_thread);
+	fprintf(fp, "    -y               copy FASTA/Q comments to output\n");
+	fprintf(fp, "    -Y               use soft clipping for supplementary alignments\n");
 	fprintf(fp, "    -K NUM           process NUM-bp query sequences in a batch [500m]\n");
 	fprintf(fp, "    --outn=INT       output up to INT secondary alignments [0]\n");
 	fprintf(fp, "    --version        print version number\n");
@@ -325,7 +328,7 @@ static inline void yes_or_no(mb_opt_t *opt, uint64_t flag, int long_idx, const c
 #endif
 int main_map(int argc, char *argv[])
 {
-	const char *opt_str = "x:o:k:c:m:p:A:B:b:O:E:t:K:N:CPyR:aU";
+	const char *opt_str = "x:o:k:c:m:p:A:B:b:O:E:t:K:N:CPyYR:aU";
 	int32_t c;
 	mb_idx_t *idx;
 	mb_opt_t mo;
@@ -360,6 +363,7 @@ int main_map(int argc, char *argv[])
 		else if (c == 'U') mo.flag |= MB_F_NO_UNMAP;
 		else if (c == 'C') mo.flag |= MB_F_NO_ALN;
 		else if (c == 'y') mo.flag |= MB_F_COPY_COMMENT;
+		else if (c == 'Y') mo.flag |= MB_F_SUPP_SOFT;
 		else if (c == 'P') mo.flag &= ~MB_F_PE;
 		else if (c == 'o') fn_out = o.arg;
 		else if (c == 't') mo.n_thread = atoi(o.arg);
