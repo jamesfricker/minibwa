@@ -73,7 +73,14 @@ Index a genome in the FASTA format. Generate
 .IR prefix .l2b
 for the genome sequence and
 .IR prefix .mbw
-for the FM-index.
+for the FM-index. Minibwa uses the libsais algorithm for BWT construction by
+default. This algorithm is fast but requires
+.RI 18 N
+bytes where
+.I N
+is the length of the genome. Use
+.B -l
+to enable the BWT-SW algorithm which is slower but uses much less memory.
 
 .SS Options
 .TP 10
@@ -100,6 +107,15 @@ with OpenMP to enable this option.
 .I ref.fa
 .I read.fq.gz
 .RI [ read2.fq.gz ]
+
+Map reads to an index genome. By default, minibwa assumes short-read input and
+outputs alignment in the PAF format. Use
+.B -a
+for SAM output and preset
+.B -x lr
+for long-read alignment. In the short-read mode, minibwa automatically detects
+interleaved read pairs and like bwa-mem and minimap2, allows mixed single-end
+and paired-ened reads as input.
 
 .SS Mapping options
 .TP 10
