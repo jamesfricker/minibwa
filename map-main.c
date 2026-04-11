@@ -66,7 +66,9 @@ static void worker_for_se_batch(void *data, long i, int tid)
 		int32_t cnt = s->seg_cnt[s->sb_off[i] + k];
 		for (j = 0; j < cnt; ++j) {
 			const mb_bseq1_t *t = &s->seq[off + j];
-			s->hit[off+j] = mb_map_sai(opt, idx, len[p], seq[p], &sai[p], &s->n_hit[off+j], b, t->name);
+			mb_opt_t opt_adap;
+			mb_opt_adap(opt, len[p], &opt_adap);
+			s->hit[off+j] = mb_map_sai(&opt_adap, idx, len[p], seq[p], &sai[p], &s->n_hit[off+j], b, t->name);
 			kfree(km, seq[p]);
 			++p;
 		}

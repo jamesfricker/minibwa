@@ -562,7 +562,7 @@ static void mb_align1(void *km, const mb_opt_t *opt, const mb_idx_t *mi, int qle
 	bw_long = (int)(opt->bw_long * 1.5 + 1.);
 	if (bw_long < bw) bw_long = bw;
 
-	if (is_sr) {
+	if (is_sr && qlen < 300) {
 		mb_max_stretch(r, a, &as1, &cnt1);
 	} else {
 		mm_fix_bad_ends(r, a, opt->bw, opt->min_chain_score * 2, &as1, &cnt1);

@@ -1,7 +1,8 @@
 #include <string.h>
+#include <math.h>
 #include "minibwa.h"
 
-void mb_opt_init(mb_opt_t *opt)
+static void mb_opt_reset(mb_opt_t *opt)
 {
 	memset(opt, 0, sizeof(mb_opt_t));
 	// seeding options
@@ -33,18 +34,30 @@ void mb_opt_init(mb_opt_t *opt)
 	opt->n_thread = 1;
 	opt->seed = 11;
 	opt->max_sw_mat = 100000000;
-	// default to sr
-	mb_opt_preset(opt, "sr");
+}
+
+void mb_opt_init(mb_opt_t *opt)
+{
+	mb_opt_reset(opt);
+	mb_opt_preset(opt, "sr:adap");
 }
 
 int mb_opt_preset(mb_opt_t *opt, const char *preset)
 {
-	if (strcmp(preset, "sr") == 0) {
+	mb_opt_reset(opt);
+	if (strcmp(preset, "sr") == 0 || strcmp(preset, "sr:adap") == 0) {
 		opt->flag |= MB_F_PE;
 		opt->min_len = 19;
 		opt->min_dp_max = 30;
-		opt->bw = opt->bw_long = 150;
-		opt->max_gap = 150;
+		if (strcmp(preset, "sr:adap") == 0) {
+			opt->flag |= MB_F_ADAP;
+			opt->bw = opt->bw_long = 100;
+			opt->max_gap = 100;
+		} else {
+			opt->flag &= ~MB_F_ADAP;
+			opt->bw = opt->bw_long = 150;
+			opt->max_gap = 150;
+		}
 		opt->pri_ratio = 0.5f;
 		opt->best_n = 101;
 		opt->end_bonus = 10;
@@ -68,4 +81,29 @@ int mb_opt_preset(mb_opt_t *opt, const char *preset)
 		return -1;
 	}
 	return 0;
+}
+
+void mb_opt_adap(const mb_opt_t *opt0, int32_t len, mb_opt_t *opt)
+{
+	const int32_t min_len = 100, mid_len = 2000;
+	double a, b;
+	*opt = *opt0;
+	if (!(opt0->flag & MB_F_ADAP)) return;
+	a = -log(0.5) / (mid_len - min_len);
+	b = exp(-a * ((len > min_len? len : min_len) - min_len));
+	if (opt0->max_gap < 5000) {
+		opt->max_gap = (int32_t)(5000 - (5000 - opt0->max_gap) * b + .499);
+		if (opt->max_gap > len) opt->max_gap = len;
+	}
+	if (opt0->bw < 500)
+		opt->bw = (int32_t)(500 - (500 - opt0->bw) * b + .499);
+	opt->bw_long = opt->bw;
+	if (opt0->best_n > 5)
+		opt->best_n = (int32_t)((opt0->best_n - 5) * b + 5 + .499);
+	if (opt0->min_dp_max < 50)
+		opt->min_dp_max = (int32_t)(50 - (50 - opt0->min_dp_max) * b + .499);
+	if (opt0->min_chain_score < 40)
+		opt->min_chain_score = (int32_t)(40 - (40 - opt0->min_chain_score) * b + .499);
+	if (opt0->pri_ratio < 0.8)
+		opt->pri_ratio = 0.8 - (0.8 - opt0->pri_ratio) * b;
 }

@@ -19,6 +19,7 @@
 #define MB_F_WRITE_MD         (0x800LL)
 #define MB_F_2ND_SEQ          (0x1000LL)
 #define MB_F_SUPP_SOFT        (0x2000LL)
+#define MB_F_ADAP             (0x4000LL)
 
 #define MB_CIGAR_MATCH      0
 #define MB_CIGAR_INS        1
@@ -119,6 +120,7 @@ void mb_idx_destroy(mb_idx_t *idx);
 
 void mb_opt_init(mb_opt_t *opt);
 int mb_opt_preset(mb_opt_t *opt, const char *preset);
+void mb_opt_adap(const mb_opt_t *opt0, int32_t len, mb_opt_t *opt);
 
 mb_tbuf_t *mb_tbuf_init(int no_kalloc);
 void mb_tbuf_destroy(mb_tbuf_t *b);
