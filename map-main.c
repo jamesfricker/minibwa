@@ -294,9 +294,10 @@ static int usage(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "  Common:\n");
 	fprintf(fp, "    -a               output SAM (PAF by default)\n");
 	fprintf(fp, "    -t INT           number of worker threads [%d]\n", opt->n_thread);
+	fprintf(fp, "    -x STR           preset (sr, lr or adap for mixed short/long reads) [adap]\n");
+	fprintf(fp, "    -l NUM           treat reads <NUM as short reads in the adap mode [%d]\n", opt->max_sr_len);
 	fprintf(fp, "    -R STR           SAM read group line in a format like '@RG\\tID:foo\\tSM:bar' []\n");
-	fprintf(fp, "    -x STR           preset (sr for short/long reads; lr for long reads) [sr]\n");
-	fprintf(fp, "    -l NUM           treat reads <NUM as short reads in the sr mode [%d]\n", opt->max_sr_len);
+	fprintf(fp, "    --base-tag=STR   output a base alignment tag: cs, ds or MD []\n");
 	fprintf(fp, "  Mapping:\n");
 	fprintf(fp, "    -k INT           min seed length [%d]\n", opt->min_len);
 	fprintf(fp, "    -c NUM           max seed occurrences [%d]\n", opt->max_occ);
@@ -317,7 +318,6 @@ static int usage(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "  Input/Output:\n");
 	fprintf(fp, "    -o FILE          output file name [stdout]\n");
 	fprintf(fp, "    -U               don't output unmapped reads\n");
-	fprintf(fp, "    --base-tag=STR   output base alignment tag: cs, ds or MD []\n");
 	fprintf(fp, "    --outn=INT       output up to INT secondary alignments [0]\n");
 	fprintf(fp, "    -y               copy FASTA/Q comments to output\n");
 	fprintf(fp, "    -Y               use soft clipping for supplementary alignments\n");

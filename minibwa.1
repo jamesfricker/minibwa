@@ -1,4 +1,4 @@
-.TH minibwa 1 "11 April 2026" "minibwa-0.0 (r226)" "Bioinformatics tools"
+.TH minibwa 1 "12 April 2026" "minibwa-0.0 (r234)" "Bioinformatics tools"
 .SH NAME
 .PP
 minibwa - short/long-read alignment against a reference genome
@@ -29,18 +29,6 @@ minibwa map
 .I idxPrefix
 .I read1.fq.gz
 .I read2.fq.gz
->
-.I output.sam
-.RE
-
-* Aligning long reads to an indexed genome and outputting PAF:
-.RS 4
-minibwa map
-.B -x lr
-.RB [ -t
-.IR nThreads ]
-.I idxPrefix
-.I read.fq.gz
 >
 .I output.sam
 .RE
@@ -122,29 +110,46 @@ Output alignment in the SAM format (PAF by default)
 .BI -t \ INT
 Number of worker CPU threads [1]
 .TP
+.BI -x \ STR
+Preset:
+.BR sr ,
+.B lr
+or
+.B adap
+.RB [ adap ]
+.RS
+.TP 6
+.B sr
+For short-read alignment. It may give fragmented alignment for typical long reads.
+.TP
+.B lr
+For long-read alignment. It may miss highly repetitive alignments for typical short reads.
+.TP
+.B adap
+For mixed short and long reads but optimized for short reads. It is equivalent to
+.RB ' -xsr
+.BR --adap=yes '.
+This mode adjusts several parameters based on the read length, asymptotically
+reaching the long-read setting. It enables additional long-read heuristic (mapQ
+formula and anchor filtering) if reads is longer than option
+.BR -l .
+.RE
+.TP
+.BI -l \ NUM
+In the adaptive mode, treat reads shorter than
+.I NUM
+as short reads [325]
+.TP
 .BI -R \ STR
 SAM read group line in a format like '@RG\\tID:foo\\tSM:bar' []
 .TP
-.BI -x \ STR
-Preset:
-.B sr
-for adaptive short/long reads but optmized for short reads, or
-.B lr
-for long reads
-.RB [ sr ].
-In the
-.B sr
-mode, minibwa adjusts several parameters based on the read length. It further
-enables long-read heuristics (mapQ formula and anchor filtering) if the read is
-longer than option
-.BR -l .
-.TP
-.BI -l \ NUM
-In the adaptive
-.B sr
-mode, treat reads shorter than
-.I NUM
-as short reads [325]
+.BI --base-tag\fR=\fISTR
+Output a base alignment tag:
+.BR cs,
+.B ds
+or
+.B MD
+[]
 
 .SS Mapping options
 .TP 10
@@ -169,9 +174,8 @@ secondary alignments [101]
 .TP
 .BR --adap = yes | no
 Enable/disable adaptive mode. Enabled with the default
-.B sr
-mode and disabled with
-.BR lr .
+.B adap
+preset.
 .TP
 .B --chain-only
 Perform chaining only without base alignment
@@ -184,13 +188,13 @@ Match score [2]
 .BI -B \ INT
 Mismatch penalty [8]
 .TP
-.BI -O \ INT1 ,[ INT2 ]
+.B -O \fIINT1\fR[,\fIINT2\fR]
 Dual gap open penalty [12,23]. If
 .I INT2
 is not specified, it is set to
 .IR INT1 .
 .TP
-.BI -E \ INT1 ,[ INT2 ]
+.B -E \fIINT1\fR[,\fIINT2\fR]
 Dual gap extension penalty [2,1]. If
 .I INT2
 is not specified, it is set to

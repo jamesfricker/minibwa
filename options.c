@@ -41,14 +41,15 @@ static void mb_opt_reset(mb_opt_t *opt)
 void mb_opt_init(mb_opt_t *opt)
 {
 	mb_opt_reset(opt);
-	mb_opt_preset(opt, "sr");
+	mb_opt_preset(opt, "adap");
 }
 
 int mb_opt_preset(mb_opt_t *opt, const char *preset)
 {
 	mb_opt_reset(opt);
 	if (strcmp(preset, "sr") == 0 || strcmp(preset, "adap") == 0) {
-		opt->flag |= MB_F_PE | MB_F_ADAP;
+		opt->flag |= MB_F_PE;
+		if (strcmp(preset, "adap") == 0) opt->flag |= MB_F_ADAP;
 		opt->min_len = 19;
 		opt->min_dp_max = 30;
 		opt->flag |= MB_F_ADAP;
