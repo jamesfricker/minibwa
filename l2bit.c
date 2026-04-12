@@ -196,7 +196,7 @@ l2b_t *l2b_import(const char *fn, uint64_t seed)
 void l2b_destroy(l2b_t *l2b)
 {
 	free(l2b->cat_name); free(l2b->cat_comm);
-	free(l2b->pac); free(l2b->ambi); free(l2b->ctg); free(l2b);
+	free(l2b->pac); free(l2b->ambi); free(l2b->mask); free(l2b->ctg); free(l2b);
 }
 
 int l2b_save(const char *fn, const l2b_t *l2b)

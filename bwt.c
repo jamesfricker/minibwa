@@ -34,7 +34,7 @@ mb_bwt_t *mb_bwt_init(void)
 void mb_bwt_destroy(mb_bwt_t *bwt)
 {
 	if (bwt == 0) return;
-	free(bwt->sa); free(bwt->data);
+	free(bwt->pre); free(bwt->sa); free(bwt->data);
 	free(bwt);
 }
 
