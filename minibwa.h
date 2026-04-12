@@ -5,21 +5,21 @@
 
 #define MB_VERSION "0.0-r234-dirty"
 
-#define MB_F_SAM              (0x1LL)    // output in the SAM format
-#define MB_F_NO_UNMAP         (0x2LL)    // output unmapped query sequences
-#define MB_F_COPY_COMMENT     (0x4LL)    // copy FASTX comments to output
-#define MB_F_PE               (0x8LL)    // paired-end mode
-#define MB_F_LONG             (0x10LL)   // long-sequence mode
-#define MB_F_EQX              (0x20LL)   // = in CIGAR
-#define MB_F_NO_KALLOC        (0x40LL)   // disable kalloc
-#define MB_F_NO_ALN           (0x80LL)   // skip base alignment
-#define MB_F_PE_PREDEF        (0x100LL)  // use predefined PE
-#define MB_F_WRITE_DS         (0x200LL)
-#define MB_F_WRITE_CS         (0x400LL)
-#define MB_F_WRITE_MD         (0x800LL)
-#define MB_F_2ND_SEQ          (0x1000LL)
-#define MB_F_SUPP_SOFT        (0x2000LL)
-#define MB_F_ADAP             (0x4000LL)
+#define MB_F_SAM              (0x1LL)       // output in the SAM format
+#define MB_F_NO_UNMAP         (0x2LL)       // output unmapped query sequences
+#define MB_F_COPY_COMMENT     (0x4LL)       // copy FASTX comments to output
+#define MB_F_PE               (0x8LL)       // paired-end mode
+#define MB_F_LONG             (0x10LL)      // long-sequence mode
+#define MB_F_EQX              (0x20LL)      // = in CIGAR
+#define MB_F_NO_KALLOC        (0x40LL)      // disable kalloc
+#define MB_F_NO_ALN           (0x80LL)      // skip base alignment
+#define MB_F_PE_PREDEF        (0x100LL)     // use predefined PE
+#define MB_F_WRITE_DS         (0x200LL)     // write ds:Z
+#define MB_F_WRITE_CS         (0x400LL)     // write cs:Z
+#define MB_F_WRITE_MD         (0x800LL)     // write MD:Z
+#define MB_F_2ND_SEQ          (0x1000LL)    // in SAM, write SEQ for secondary alignments
+#define MB_F_SUPP_SOFT        (0x2000LL)    // in SAM, use soft-clips for supplementary alignments
+#define MB_F_ADAP             (0x4000LL)    // adaptive mode
 
 #define MB_CIGAR_MATCH      0
 #define MB_CIGAR_INS        1

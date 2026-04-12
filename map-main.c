@@ -274,7 +274,6 @@ static ko_longopt_t long_options[] = {
 	{ "outn",         ko_required_argument, 302 },
 	{ "pe-predef",    ko_optional_argument, 303 },
 	{ "rescue",       ko_required_argument, 304 },
-	{ "base-tag",     ko_optional_argument, 305 },
 	{ "adap",         ko_required_argument, 308 },
 	{ "chain-only",   ko_no_argument,       309 },
 	{ "dbg-aln-seq",  ko_no_argument,       601 },
@@ -297,10 +296,11 @@ static int usage(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "    -x STR           preset (sr, lr or adap for mixed short/long reads) [adap]\n");
 	fprintf(fp, "    -l NUM           treat reads <NUM as short reads in the adap mode [%d]\n", opt->max_sr_len);
 	fprintf(fp, "    -R STR           SAM read group line in a format like '@RG\\tID:foo\\tSM:bar' []\n");
-	fprintf(fp, "    --base-tag=STR   output a base alignment tag: cs, ds or MD []\n");
+	fprintf(fp, "    -b STR           output a base alignment tag: cs, ds or MD []\n");
 	fprintf(fp, "  Mapping:\n");
 	fprintf(fp, "    -k INT           min seed length [%d]\n", opt->min_len);
 	fprintf(fp, "    -c NUM           max seed occurrences [%d]\n", opt->max_occ);
+	fprintf(fp, "    -g NUM           max gap size, controlling extension and chain breaking [%d]\n", opt->max_gap);
 	fprintf(fp, "    -w NUM           bandwidth [%d]\n", opt->bw);
 	fprintf(fp, "    -W NUM           long bandwidth (for long reads or the adaptive mode) [%d]\n", opt->bw_long);
     fprintf(fp, "    -m INT           min chaining score [%d]\n", opt->min_chain_score);
@@ -341,7 +341,7 @@ static inline void yes_or_no(mb_opt_t *opt, uint64_t flag, int long_idx, const c
 
 int main_map(int argc, char *argv[])
 {
-	const char *opt_str = "x:o:k:c:m:p:A:B:b:O:E:t:K:N:PyYR:aUl:r:w:W:";
+	const char *opt_str = "x:o:k:c:m:p:A:B:b:O:E:t:K:N:PyYR:aUl:r:w:W:g:b:";
 	int32_t c;
 	mb_idx_t *idx;
 	mb_opt_t mo;
@@ -373,6 +373,7 @@ int main_map(int argc, char *argv[])
 		else if (c == 'A') mo.a = atoi(o.arg);
 		else if (c == 'B') mo.b = atoi(o.arg);
 		else if (c == 'l') mo.max_sr_len = kom_parse_num(o.arg, 0);
+		else if (c == 'g') mo.max_gap = kom_parse_num(o.arg, 0);
 		else if (c == 'w') mo.bw = kom_parse_num(o.arg, 0);
 		else if (c == 'W') mo.bw_long = kom_parse_num(o.arg, 0);
 		else if (c == 'a') mo.flag |= MB_F_SAM;
@@ -392,15 +393,6 @@ int main_map(int argc, char *argv[])
 			mo.flag |= MB_F_PE_PREDEF;
 		} else if (c == 304) { // --rescue
 			mo.max_rescue = atoi(o.arg);
-		} else if (c == 305) { // --aln-tag
-			mo.flag &= ~(MB_F_WRITE_CS|MB_F_WRITE_DS|MB_F_WRITE_MD);
-			if (o.arg == 0 || strcmp(o.arg, "cs") == 0) mo.flag |= MB_F_WRITE_CS;
-			else if (strcmp(o.arg, "ds") == 0) mo.flag |= MB_F_WRITE_DS;
-			else if (strcmp(o.arg, "MD") == 0 || strcmp(o.arg, "md") == 0) mo.flag |= MB_F_WRITE_MD;
-			else if (kom_verbose >= 2) {
-				mo.flag |= MB_F_WRITE_CS;
-				fprintf(stderr, "[WARNING]\033[1;31m --aln-tag only takes 'cs', 'ds' or 'MD'. Invalid values are assumed to be 'cs'.\033[0m\n");
-			}
 		} else if (c == 308) { // --adap
 			yes_or_no(&mo, MB_F_ADAP, o.longidx, o.arg, 1);
 		} else if (c == 309) { // --chain-only
@@ -423,6 +415,15 @@ int main_map(int argc, char *argv[])
 		} else if (c == 'E') {
 			mo.e = mo.e2 = strtol(o.arg, &s, 10);
 			if (*s == ',') mo.e2 = strtol(s + 1, &s, 10);
+		} else if (c == 'b') {
+			mo.flag &= ~(MB_F_WRITE_CS|MB_F_WRITE_DS|MB_F_WRITE_MD);
+			if (strcmp(o.arg, "cs") == 0) mo.flag |= MB_F_WRITE_CS;
+			else if (strcmp(o.arg, "ds") == 0) mo.flag |= MB_F_WRITE_DS;
+			else if (strcmp(o.arg, "MD") == 0 || strcmp(o.arg, "md") == 0) mo.flag |= MB_F_WRITE_MD;
+			else if (kom_verbose >= 2) {
+				mo.flag |= MB_F_WRITE_CS;
+				fprintf(stderr, "[WARNING]\033[1;31m -b only takes 'cs', 'ds' or 'MD'. Invalid values are assumed to be 'cs'.\033[0m\n");
+			}
 		} else if (c == 901) { // --version
 			puts(MB_VERSION);
 			exit(0);

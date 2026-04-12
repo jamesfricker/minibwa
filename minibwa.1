@@ -143,7 +143,7 @@ as short reads [325]
 .BI -R \ STR
 SAM read group line in a format like '@RG\\tID:foo\\tSM:bar' []
 .TP
-.BI --base-tag\fR=\fISTR
+.BI -b \ STR
 Output a base alignment tag:
 .BR cs,
 .B ds
@@ -203,3 +203,56 @@ A gap of length
 .I k
 costs
 .RI min{ O1 + k * E1 , O2 + k * E2 }.
+
+.SH OUTPUT FORMATS
+.PP
+Minibwa outputs the PAF format by default. It is a TAB-delimited text format
+with each line consisting of at least 12 fields as are described in the
+following table:
+.TS
+center box;
+cb | cb | cb
+r | c | l .
+Col	Type	Description
+_
+1	string	Read name
+2	int	Read length
+3	int	Read start coordinate (0-based)
+4	int	Read end coordinate (0-based)
+5	char	`+' for forward strand; `-' for reverse
+6	string	Contig name
+7	int	Contig length
+8	int	Contig start coordinate on the original strand
+9	int	Contig end coordinate on the original strand
+10	int	Number of matching bases
+11	int	Number of bases in alignment
+12	int	Mapping quality (0-255 with 255 for missing)
+.TE
+
+.PP
+Option
+.B -a
+enables the SAM output. Both SAM and PAF may have addtional fields in typed
+key-value format. Minibwa may output the following tags:
+.TS
+center box;
+cb | cb | cb
+r | c | l .
+Tag	Type	Description
+_
+AS	i	Alignment score from dynamic programming
+ms	i	Score of the maximum scoring segment
+cg	Z	CIGAR (PAF only)
+MD	Z	Difference string in the SAM spec
+cs	Z	Difference string
+.TE
+
+.SH LIMITATIONS
+.TP 2
+*
+Minibwa does not work noisy long reads.
+.TP
+*
+In the default adaptive mode, minibwa does not
+.I smoothly
+transition between short- and long-read modes.
