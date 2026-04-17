@@ -162,7 +162,7 @@ static void *worker_pipeline(void *shared, int step, void *in)
     } else if (step == 1) { // step 1: map
 		step_t *s = (step_t*)in;
 		kt_for(opt->n_thread, worker_for_se_batch, in, s->n_sb);
-		if ((opt->flag & MB_F_PE) && s->n_frag < s->n_seq) { // PE mode
+		if ((opt->flag & MB_F_PE) && s->n_frag < s->n_seq && !(opt->flag & MB_F_NO_PAIRING)) { // PE mode
 			if ((opt->flag & MB_F_PE_PREDEF) || s->n_pe < 20) { // use predefined PE stats
 				s->pes[1].failed = 0;
 				s->pes[1].avg = opt->pe_avg, s->pes[1].std = opt->pe_std;
@@ -276,6 +276,7 @@ static ko_longopt_t long_options[] = {
 	{ "pe-predef",    ko_optional_argument, 303 },
 	{ "rescue",       ko_required_argument, 304 },
 	{ "eqx",          ko_no_argument,       305 },
+	{ "pe",           ko_required_argument, 306 },
 	{ "adap",         ko_required_argument, 308 },
 	{ "chain-only",   ko_no_argument,       309 },
 	{ "dbg-aln-seq",  ko_no_argument,       601 },
@@ -384,7 +385,7 @@ int main_map(int argc, char *argv[])
 		else if (c == 'y') mo.flag |= MB_F_COPY_COMMENT;
 		else if (c == 'Y') mo.flag |= MB_F_SUPP_SOFT;
 		else if (c == '5') mo.flag |= MB_F_PRIMARY5;
-		else if (c == 'P') mo.flag &= ~MB_F_PE;
+		else if (c == 'P') mo.flag |= MB_F_NO_PAIRING;
 		else if (c == 'o') fn_out = o.arg;
 		else if (c == 't') mo.n_thread = atoi(o.arg);
 		else if (c == 'K') mo.mb_size = kom_parse_num(o.arg, 0);
@@ -399,6 +400,8 @@ int main_map(int argc, char *argv[])
 			mo.max_rescue = atoi(o.arg);
 		} else if (c == 305) { // --eqx
 			mo.flag |= MB_F_EQX;
+		} else if (c == 306) { // --pe
+			yes_or_no(&mo, MB_F_PE, o.longidx, o.arg, 1);
 		} else if (c == 308) { // --adap
 			yes_or_no(&mo, MB_F_ADAP, o.longidx, o.arg, 1);
 		} else if (c == 309) { // --chain-only
