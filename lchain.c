@@ -91,7 +91,7 @@ static uint64_t *mb_chain_backtrack(void *km, int64_t n, const int32_t *f, const
 	return u;
 }
 
-static mb_anchor_t *compact_a(void *km, int32_t n_u, uint64_t *u, int32_t n_v, int32_t *v, mb_anchor_t *a)
+static mb_anchor_t *compact_a(void *km, const l2b_t *l2b, int32_t n_u, uint64_t *u, int32_t n_v, int32_t *v, mb_anchor_t *a)
 {
 	mb_anchor_t *b;
 	mb128_t *w;
@@ -110,7 +110,9 @@ static mb_anchor_t *compact_a(void *km, int32_t n_u, uint64_t *u, int32_t n_v, i
 	// sort u[] and a[] by the target position, such that adjacent chains may be joined
 	w = Kmalloc(km, mb128_t, n_u);
 	for (i = k = 0; i < n_u; ++i) {
-		w[i].x = b[k].tpos, w[i].y = (uint64_t)k<<32|i;
+		const l2b_ctg_t *ctg = &l2b->ctg[b[k].sid>>1];
+		w[i].x = b[k].tpos + ctg->off * 2 + ctg->len * (b[k].sid&1);
+		w[i].y = (uint64_t)k<<32 | i;
 		k += (int32_t)u[i];
 	}
 	radix_sort_mb128x(w, w + n_u);
@@ -123,7 +125,7 @@ static mb_anchor_t *compact_a(void *km, int32_t n_u, uint64_t *u, int32_t n_v, i
 	}
 	memcpy(u, u2, n_u * 8);
 	memcpy(b, a, k * sizeof(mb_anchor_t)); // write _a_ to _b_ and deallocate _a_ because _a_ is oversized, sometimes a lot
-	kfree(km, a); kfree(km, w); kfree(km, u2);
+	kfree(km, u2); kfree(km, w); kfree(km, a);
 	return b;
 }
 
@@ -160,7 +162,7 @@ static inline int32_t comput_sc(const mb_anchor_t *ai, const mb_anchor_t *aj, in
  *   u[]: score<<32 | #anchors (sum of lower 32 bits of u[] is the returned length of a[])
  * input a[] is deallocated on return
  */
-mb_anchor_t *mb_lchain_dp(void *km, int max_dist_x, int max_dist_y, int bw, int max_skip, int max_iter, int min_sc, float chn_pen_gap,
+mb_anchor_t *mb_lchain_dp(void *km, const l2b_t *l2b, int max_dist_x, int max_dist_y, int bw, int max_skip, int max_iter, int min_sc, float chn_pen_gap,
 						  int64_t n, mb_anchor_t *a, int *n_u_, uint64_t **_u)
 { // TODO: make sure this works when n has more than 32 bits
 	int32_t *f, *t, *v, n_u, n_v, mmax_f = 0, max_drop = bw;
@@ -225,5 +227,5 @@ mb_anchor_t *mb_lchain_dp(void *km, int max_dist_x, int max_dist_y, int bw, int 
 		kfree(km, a); kfree(km, v);
 		return 0;
 	}
-	return compact_a(km, n_u, u, n_v, v, a);
+	return compact_a(km, l2b, n_u, u, n_v, v, a);
 }

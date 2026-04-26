@@ -55,7 +55,7 @@ void mb_anchor(void *km, const mb_idx_t *idx, mb_sai_v *u, int32_t qlen, int32_t
 void mb_anchor_sort(const l2b_t *l2b, int64_t n_a, mb_anchor_t *a);
 
 // defined in lchain.c
-mb_anchor_t *mb_lchain_dp(void *km, int max_dist_x, int max_dist_y, int bw, int max_skip, int max_iter, int min_sc, float chn_pen_gap,
+mb_anchor_t *mb_lchain_dp(void *km, const l2b_t *l2b, int max_dist_x, int max_dist_y, int bw, int max_skip, int max_iter, int min_sc, float chn_pen_gap,
 						  int64_t n, mb_anchor_t *a, int *n_u_, uint64_t **_u);
 
 // defined in map-algo.c

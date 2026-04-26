@@ -571,7 +571,7 @@ mb_hit_t *mb_map_sai(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, con
 
 	// initial chaining
 	if (kom_dbg_flag & MB_DBG_ANCHOR) mb_dbg_anchor(idx, qlen, v.n, v.a, qname);
-	a = mb_lchain_dp(b->km, opt->max_gap, opt->max_gap, opt->bw, opt->max_chain_skip, opt->max_chain_iter,
+	a = mb_lchain_dp(b->km, idx->l2b, opt->max_gap, opt->max_gap, opt->bw, opt->max_chain_skip, opt->max_chain_iter,
 					 opt->min_chain_score, chn_pen_gap, v.n, v.a, &n_hit, &w);
 	v.a = 0; v.n = v.m = 0; // ownership transferred to a
 
@@ -589,7 +589,7 @@ mb_hit_t *mb_map_sai(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, con
 			for (i = 0, n_a = 0; i < n_hit; ++i) n_a += (int32_t)w[i];
 			kfree(b->km, w);
 			mb_anchor_sort(idx->l2b, n_a, a);
-			a = mb_lchain_dp(b->km, opt->max_gap, opt->max_gap, opt->bw_long, opt->max_chain_skip, opt->max_chain_iter,
+			a = mb_lchain_dp(b->km, idx->l2b, opt->max_gap, opt->max_gap, opt->bw_long, opt->max_chain_skip, opt->max_chain_iter,
 							 opt->min_chain_score, chn_pen_gap, n_a, a, &n_hit, &w);
 		}
 	}
