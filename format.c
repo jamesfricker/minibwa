@@ -56,6 +56,8 @@ static char *mb_escape(char *s)
 		if (*p == '\\') {
 			++p;
 			if (*p == 't') *q++ = '\t';
+			else if (*p == 'n') *q++ = '\n';
+			else if (*p == 'r') *q++ = '\r';
 			else if (*p == '\\') *q++ = '\\';
 		} else *q++ = *p;
 	}
@@ -91,6 +93,7 @@ static int sam_write_rg_line(kstring_t *str, const char *s)
 	for (q = p, r = mb_rg_id; *q && *q != '\t' && *q != '\n'; ++q)
 		*r++ = *q;
 	kom_sprintf_lite(str, "%s\n", rg_line);
+	free(rg_line);
 	return 0;
 
 err_set_rg:
