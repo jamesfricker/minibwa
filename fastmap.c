@@ -110,7 +110,7 @@ int main_fastmap(int argc, char *argv[])
 
 	if (argc - o.ind < 2) return usage_fastmap(stderr, min_len, min_occ, max_size_out, max_seq);
 
-	idx = mb_idx_load(argv[o.ind]);
+	idx = mb_idx_load(argv[o.ind], 0);
 	bwt = idx->bwt;
 	kom_assert(bwt, "failed to open the BWT file.");
 	fp = strcmp(argv[o.ind+1], "-")? gzopen(argv[o.ind+1], "rb") : gzdopen(0, "rb");

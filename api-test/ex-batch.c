@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 	f = gzopen(argv[2], "r");
 	assert(f);
 	ks = kseq_init(f);
-	idx = mb_idx_load(argv[1]);
+	idx = mb_idx_load(argv[1], 0);
 	assert(idx);
 
 	qlen = (int32_t*)malloc(opt.sb_seq * sizeof(int32_t));

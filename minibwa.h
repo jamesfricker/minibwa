@@ -22,6 +22,7 @@
 #define MB_F_ADAP             (0x4000LL)    // adaptive mode
 #define MB_F_PRIMARY5         (0x8000LL)
 #define MB_F_NO_PAIRING       (0x10000LL)
+#define MB_F_METH             (0x20000LL)   // methylation mode
 
 #define MB_CIGAR_MATCH      0
 #define MB_CIGAR_INS        1
@@ -121,7 +122,7 @@ typedef struct mb_tbuf_s mb_tbuf_t;
 extern "C" {
 #endif
 
-mb_idx_t *mb_idx_load(const char *prefix);
+mb_idx_t *mb_idx_load(const char *prefix, int32_t is_meth);
 void mb_idx_destroy(mb_idx_t *idx);
 const char *mb_idx_ctg_name(const mb_idx_t *idx, int32_t tid);
 int64_t mb_idx_ctg_len(const mb_idx_t *idx, int32_t tid);

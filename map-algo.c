@@ -16,25 +16,26 @@ KRADIX_SORT_INIT(mb64, uint64_t, key_64, 8)
  * Index loading *
  *****************/
 
-mb_idx_t *mb_idx_load(const char *prefix)
+mb_idx_t *mb_idx_load(const char *prefix, int32_t is_meth)
 {
 	char *buf;
 	mb_idx_t *idx = 0;
 	l2b_t *l2b;
 	mb_bwt_t *bwt;
-	buf = kom_calloc(char, strlen(prefix) + 5);
+	buf = kom_calloc(char, strlen(prefix) + 10);
 	strcat(strcpy(buf, prefix), ".l2b");
 	l2b = l2b_load(buf);
 	if (l2b == 0) goto end_idx_load;
-	strcat(strcpy(buf, prefix), ".mbw");
+	if (is_meth) strcat(strcpy(buf, prefix), ".meth.mbw");
+	else strcat(strcpy(buf, prefix), ".mbw");
 	bwt = mb_bwt_load(buf);
 	if (bwt == 0) {
 		l2b_destroy(l2b);
 		goto end_idx_load;
 	}
-	mb_bwt_cache(bwt, 10);
+	mb_bwt_cache(bwt, 10); // TODO: don't hard code this
 	idx = kom_calloc(mb_idx_t, 1);
-	idx->l2b = l2b, idx->bwt = bwt;
+	idx->is_meth = !!is_meth, idx->l2b = l2b, idx->bwt = bwt;
 end_idx_load:
 	free(buf);
 	return idx;

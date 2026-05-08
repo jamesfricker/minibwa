@@ -288,6 +288,7 @@ static ko_longopt_t long_options[] = {
 	{ "long",         ko_optional_argument, 307 },
 	{ "adap",         ko_required_argument, 308 },
 	{ "chain-only",   ko_no_argument,       309 },
+	{ "meth",         ko_no_argument,       310 },
 	{ "dbg-aln-seq",  ko_no_argument,       601 },
 	{ "dbg-anchor",   ko_no_argument,       602 },
 	{ "dbg-seed",     ko_no_argument,       603 },
@@ -358,7 +359,7 @@ static inline void yes_or_no(mb_opt_t *opt, uint64_t flag, int long_idx, const c
 int main_map(int argc, char *argv[])
 {
 	const char *opt_str = "x:o:k:c:m:p:A:B:b:O:E:t:K:N:PyYR:aul:w:W:g:5s:";
-	int32_t c;
+	int32_t c, is_meth = 0;
 	mb_idx_t *idx;
 	mb_opt_t mo;
 	char *fn_out = 0, *rg_line = 0, *s;
@@ -421,6 +422,8 @@ int main_map(int argc, char *argv[])
 			yes_or_no(&mo, MB_F_ADAP, o.longidx, o.arg, 1);
 		} else if (c == 309) { // --chain-only
 			mo.flag |= MB_F_NO_ALN;
+		} else if (c == 310) { // --meth
+			is_meth = 1;
 		} else if (c == 601) { // --dbg-aln-seq
 			kom_dbg_flag |= MB_DBG_ALN_SEQ;
 		} else if (c == 602) { // --dbg-anchor
@@ -463,7 +466,7 @@ int main_map(int argc, char *argv[])
 	if (argc - o.ind < 2)
 		return usage(stderr, &mo);
 
-	idx = mb_idx_load(argv[o.ind]);
+	idx = mb_idx_load(argv[o.ind], is_meth);
 	kom_assert(idx, "failed to load the index.");
 	if (kom_verbose >= 3)
 		fprintf(stderr, "[M::%s::%.3f*%.2f] index loaded\n", __func__, kom_realtime(), kom_percent_cpu());

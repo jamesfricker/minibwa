@@ -18,6 +18,7 @@
 #define MB_SEED_IGNORE     0x2
 
 struct mb_idx_s {
+	int32_t is_meth;
 	l2b_t *l2b;
 	mb_bwt_t *bwt;
 };

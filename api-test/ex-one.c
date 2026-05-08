@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 	kseq_t *ks = kseq_init(f);
 
 	// open index reader
-	mb_idx_t *idx = mb_idx_load(argv[1]);
+	mb_idx_t *idx = mb_idx_load(argv[1], 0);
 	assert(idx);
 	while (kseq_read(ks) >= 0) {
 		mb_hit_t *hit;
