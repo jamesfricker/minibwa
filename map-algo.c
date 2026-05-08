@@ -628,6 +628,10 @@ mb_hit_t *mb_map_sai(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, con
 	return hit;
 }
 
+/*************************
+ * Public alignment APIs *
+ *************************/
+
 mb_hit_t *mb_map(const mb_opt_t *opt, const mb_idx_t *idx, int32_t qlen, const char *seq0, int32_t *n_hit_, mb_tbuf_t *b0, const char *qname)
 {
 	mb_opt_t opt_adap;

@@ -37,23 +37,30 @@ static void worker_for_se_batch(void *data, long i, int tid)
 	const mb_idx_t *idx = s->p->idx;
 	mb_tbuf_t *b = s->tbuf[tid];
 	void *km;
+	int64_t tot;
 	int32_t n, j, k, l, p, *len;
-	uint8_t **seq;
+	uint8_t **seq, *buf;
 	mb_sai_v *sai;
 
 	km = mb_tbuf_km(b);
-	for (k = 0, n = 0; k < s->sb_cnt[i]; ++k)
+	for (k = 0, n = 0, tot = 0; k < s->sb_cnt[i]; ++k) {
 		n += s->seg_cnt[s->sb_off[i] + k];
+		int32_t off = s->seg_off[s->sb_off[i] + k];
+		int32_t cnt = s->seg_cnt[s->sb_off[i] + k];
+		for (j = 0; j < cnt; ++j)
+			tot += s->seq[off + j].l_seq;
+	}
+	buf = Kmalloc(km, uint8_t, tot);
 	len = Kmalloc(km, int32_t, n);
 	seq = Kmalloc(km, uint8_t*, n);
 	sai = Kcalloc(km, mb_sai_v, n);
-	for (k = p = 0; k < s->sb_cnt[i]; ++k) {
+	for (k = p = 0, tot = 0; k < s->sb_cnt[i]; ++k) {
 		int32_t off = s->seg_off[s->sb_off[i] + k];
 		int32_t cnt = s->seg_cnt[s->sb_off[i] + k];
 		for (j = 0; j < cnt; ++j) {
 			const mb_bseq1_t *t = &s->seq[off + j];
 			len[p] = t->l_seq;
-			seq[p] = Kcalloc(km, uint8_t, t->l_seq);
+			seq[p] = &buf[tot], tot += t->l_seq;
 			for (l = 0; l < t->l_seq; ++l)
 				seq[p][l] = kom_nt4_table[(uint8_t)t->seq[l]];
 			++p;
@@ -69,13 +76,13 @@ static void worker_for_se_batch(void *data, long i, int tid)
 			mb_opt_t opt_adap;
 			mb_opt_adap(opt, len[p], &opt_adap);
 			s->hit[off+j] = mb_map_sai(&opt_adap, idx, len[p], seq[p], &sai[p], &s->n_hit[off+j], b, t->name);
-			kfree(km, seq[p]);
 			++p;
 		}
 	}
 	kfree(km, sai);
 	kfree(km, seq);
 	kfree(km, len);
+	kfree(km, buf);
 	mb_tbuf_reset(b, opt->cap_kalloc);
 }
 
