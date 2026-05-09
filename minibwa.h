@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define MB_VERSION "0.0-r308-dirty"
+#define MB_VERSION "0.0-r309-dirty"
 
 #define MB_F_SAM              (0x1LL)       // output in the SAM format
 #define MB_F_NO_UNMAP         (0x2LL)       // output unmapped query sequences
@@ -141,13 +141,14 @@ int32_t mb_tbuf_reset(mb_tbuf_t *b, int64_t max_block_size);
  * @param idx        index
  * @param qlen       query length
  * @param seq        query sequence, ASCII or 01/2/3 encoded
+ * @param mt         methylation type: 0 for unmethylated, 1 for read1 (C-to-T) and 2 for read2 (G-to-A)
  * @param n_hit      (out) number of hits
  * @param b          thread buffer; can be NULL
  * @param qname      query name
  *
  * @return hit array
  */
-mb_hit_t *mb_map(const mb_opt_t *opt, const mb_idx_t *idx, int32_t qlen, const char *seq, int32_t *n_hit, mb_tbuf_t *b, const char *qname);
+mb_hit_t *mb_map(const mb_opt_t *opt, const mb_idx_t *idx, int32_t qlen, const char *seq, int32_t mt, int32_t *n_hit, mb_tbuf_t *b, const char *qname);
 
 /**
  * Align a set of sequences in batch

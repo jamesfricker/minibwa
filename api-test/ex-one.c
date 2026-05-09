@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 	while (kseq_read(ks) >= 0) {
 		mb_hit_t *hit;
 		int32_t i, j, n_hit;
-		hit = mb_map(&opt, idx, ks->seq.l, ks->seq.s, &n_hit, 0, ks->name.s);
+		hit = mb_map(&opt, idx, ks->seq.l, ks->seq.s, 0, &n_hit, 0, ks->name.s);
 		for (j = 0; j < n_hit; ++j) {
 			mb_hit_t *h = &hit[j];
 			printf("%s\t%lu\t%d\t%d\t%c\t", ks->name.s, ks->seq.l, h->qs, h->qe, "+-"[h->rev]);

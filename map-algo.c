@@ -632,7 +632,7 @@ mb_hit_t *mb_map_sai(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, con
  * Public alignment APIs *
  *************************/
 
-mb_hit_t *mb_map(const mb_opt_t *opt, const mb_idx_t *idx, int32_t qlen, const char *seq0, int32_t *n_hit_, mb_tbuf_t *b0, const char *qname)
+mb_hit_t *mb_map(const mb_opt_t *opt, const mb_idx_t *idx, int32_t qlen, const char *seq0, int32_t mt, int32_t *n_hit_, mb_tbuf_t *b0, const char *qname)
 {
 	mb_opt_t opt_adap;
 	mb_hit_t *ret;
@@ -646,13 +646,13 @@ mb_hit_t *mb_map(const mb_opt_t *opt, const mb_idx_t *idx, int32_t qlen, const c
 	for (i = 0; i < qlen; ++i)
 		seq[i] = kom_nt4_table[(uint8_t)seq0[i]];
 	mb_seed_intv(b->km, idx->bwt, qlen, seq, opt->min_len, opt->max_sub_occ, &u);
-	ret = mb_map_sai(&opt_adap, idx, qlen, seq, L2B_METH_NONE, &u, n_hit_, b, qname);
+	ret = mb_map_sai(&opt_adap, idx, qlen, seq, mt, &u, n_hit_, b, qname);
 	kfree(b->km, seq);
 	if (b0 == 0) mb_tbuf_destroy(b);
 	return ret;
 }
 
-mb_hit_t **mb_map_batch(const mb_opt_t *opt, const mb_idx_t *idx, int32_t n_seq, const int32_t *qlen, const char **seq, int32_t is_pe, int32_t *n_hit, mb_tbuf_t *b0, const char **qname)
+mb_hit_t **mb_map_batch(const mb_opt_t *opt, const mb_idx_t *idx, int32_t n_seq, const int32_t *qlen, const char **seq, int32_t *n_hit, mb_tbuf_t *b0, const char **qname)
 {
 	mb_tbuf_t *b;
 	mb_hit_t **hit;
