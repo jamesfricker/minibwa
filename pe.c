@@ -312,7 +312,7 @@ typedef struct {
 } mb_hit_v;
 
 static const mb_hit_t *mb_matesw_core(void *km, const mb_opt_t *opt, const l2b_t *l2b, const mb_pestat_t pes[4], const mb_hit_t *h0, int32_t r0,
-	int32_t len, uint8_t *seq[2], mb_hit_v *h1, int32_t min_sc, ksw_extz_t *ez)
+	int32_t len, uint8_t *seq[2], l2b_meth_t mt0, mb_hit_v *h1, int32_t min_sc, ksw_extz_t *ez)
 {
 	int32_t dir, skip[4];
 	int64_t pos5;
@@ -337,10 +337,12 @@ static const mb_hit_t *mb_matesw_core(void *km, const mb_opt_t *opt, const l2b_t
 			int64_t ts2 = ts, te2 = te;
 			int32_t max_ug, max_i, n_good, n_kmer;
 			uint8_t *ref;
+			l2b_meth_t mt = mt0;
 			mb_hit_t ht;
 			ht.p = 0;
 			ref = Kmalloc(km, uint8_t, te - ts);
-			l2b_getseq(l2b, h0->tid, ts, te, ref);
+			if (is_rev) mt = l2b_meth_rev(mt0); // TODO: check if this is correct!!
+			l2b_getseq_meth(l2b, h0->tid, ts, te, mt, ref);
 			max_ug = mb_ungap(km, len, seq[is_rev], te - ts, ref, 7, &max_i, &n_good, &n_kmer);
 			if (max_ug >= 10 && max_ug >= len>>1 && n_good == 1) {
 				ts2 = ts + max_i - len / 2;
@@ -370,7 +372,8 @@ static const mb_hit_t *mb_matesw_core(void *km, const mb_opt_t *opt, const l2b_t
 	return ret;
 }
 
-static int32_t mb_matesw(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_t n_hit[2], mb_hit_t *hit[2], const mb_pestat_t pes[4], const mb_pairaux_t *paux0, int32_t qlen[2], char *const qseq[2])
+static int32_t mb_matesw(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_t n_hit[2], mb_hit_t *hit[2], const mb_pestat_t pes[4], const mb_pairaux_t *paux0,
+	int32_t qlen[2], char *const qseq[2], int32_t is_meth)
 {
 	int32_t i, r, n_add, n_res, max[2], max2[2], skip[2], min_sc[2];
 	mb_hit_v ha[2];
@@ -430,8 +433,9 @@ static int32_t mb_matesw(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_
 	for (i = n_res - 1; i >= 0; --i) {
 		int32_t sc, r = a[i].y&1, j = a[i].y>>1;
 		const mb_hit_t *h0 = &ha[r].a[j], *h1;
+		l2b_meth_t mt = !is_meth? L2B_METH_NONE : r == 0? L2B_METH_G2A : L2B_METH_C2T; // rescuing mate: r=0 rescues R2(G2A), r=1 rescues R1(C2T)
 		if (skip[r]) continue;
-		h1 = mb_matesw_core(km, opt, l2b, pes, h0, r, qlen[!r], qs[!r], &ha[!r], min_sc[!r], &ez);
+		h1 = mb_matesw_core(km, opt, l2b, pes, h0, r, qlen[!r], qs[!r], mt, &ha[!r], min_sc[!r], &ez);
 		if (h1) { // rescue successful
 			sc = mb_pair_score(h0, h1, pes, opt->a);
 			if (sc > max[r]) max2[r] = max[r], max[r] = sc;
@@ -451,7 +455,7 @@ static int32_t mb_matesw(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_
 
 void mb_pair(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_t n_hit[2], mb_hit_t *hit[2], const mb_pestat_t pes[4], int32_t qlen[2], char *const qseq[2])
 {
-	int32_t r, i, score_se, do_matesw;
+	int32_t r, i, score_se, do_matesw, is_meth = !!(opt->flag & MB_F_METH);
 	mb_pairaux_t paux;
 	mb_hit_t *h[2];
 
@@ -459,7 +463,7 @@ void mb_pair(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_t n_hit[2], 
 	do_matesw = paux.n_pp > 0 && paux.score == paux.sub_sc? 0 : 1; // skip mate rescue if we see two equally best pairs
 	if (do_matesw && opt->max_rescue > 0) {
 		int32_t sub_diff = opt->a + opt->b > opt->q + opt->e? opt->a + opt->b : opt->q + opt->e;
-		if (mb_matesw(km, opt, l2b, n_hit, hit, pes, &paux, qlen, qseq) > 0) {
+		if (mb_matesw(km, opt, l2b, n_hit, hit, pes, &paux, qlen, qseq, is_meth) > 0) {
 			for (r = 0; r < 2; ++r) {
 				for (i = 0; i < n_hit[r]; ++i) {
 					mb_hit_t *h = &hit[r][i];
