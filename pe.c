@@ -421,6 +421,16 @@ static int32_t mb_matesw(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_
 			qs[r][1][qlen[r] - 1 - i] = c < 4? 3 - c : 4;
 		}
 	}
+	if (opt->flag & MB_F_METH) {
+		for (i = 0; i < qlen[0]; ++i) {
+			if (qs[0][0][i] == 1) qs[0][0][i] = 3;
+			if (qs[0][1][i] == 2) qs[0][1][i] = 0;
+		}
+		for (i = 0; i < qlen[1]; ++i) {
+			if (qs[1][0][i] == 2) qs[1][0][i] = 0;
+			if (qs[1][1][i] == 1) qs[1][1][i] = 3;
+		}
+	}
 	min_sc[0] = mb_hit_sum_score(km, n_hit[0], hit[0]) / opt->a - opt->pen_unpair;
 	min_sc[1] = mb_hit_sum_score(km, n_hit[1], hit[1]) / opt->a - opt->pen_unpair;
 
