@@ -373,7 +373,7 @@ static void mb_align_pair(void *km, const mb_opt_t *opt, int qlen, const uint8_t
 		ksw_extz2_sse(km, qlen, qseq, tlen, tseq, 5, mat, opt->q, opt->e, w, zdrop * opt->a, end_bonus, ksw_flag, ez);
 	} else { // dual affine gap
 		ksw_extd2_sse(km, qlen, qseq, tlen, tseq, 5, mat, opt->q, opt->e, opt->q2, opt->e2, w, zdrop * opt->a, end_bonus, ksw_flag, ez);
-		//fprintf(stderr, "D2\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", qlen, tlen, !!(ksw_flag&KSW_EZ_EXTZ_ONLY), ez->max_t, ez->max_q, ez->max, ez->zdropped);
+		//fprintf(stderr, "D2\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", tlen, qlen, !!(ksw_flag&KSW_EZ_EXTZ_ONLY), ez->max_t, ez->max_q, ez->max, ez->zdropped);
 	}
 	if (kom_dbg_flag & MB_DBG_ALN_SEQ) {
 		int i;
