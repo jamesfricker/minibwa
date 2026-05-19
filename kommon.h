@@ -39,17 +39,6 @@ typedef struct {
 
 typedef struct { uint64_t x, y; } kom128_t;
 
-#define KOM_SIMD_SSE     0x1
-#define KOM_SIMD_SSE2    0x2
-#define KOM_SIMD_SSE3    0x4
-#define KOM_SIMD_SSSE3   0x8
-#define KOM_SIMD_SSE4_1  0x10
-#define KOM_SIMD_SSE4_2  0x20
-#define KOM_SIMD_AVX     0x40
-#define KOM_SIMD_AVX2    0x80
-#define KOM_SIMD_AVX512F 0x100
-#define KOM_SIMD_AVX512BW 0x200
-
 #ifdef __cplusplus
 extern "C" {
 #endif
