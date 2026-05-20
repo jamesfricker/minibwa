@@ -317,26 +317,27 @@ void ksw_extd2_sse(void *km, int qlen, const uint8_t *query, int tlen, const uin
 			// compute H[], max_H and max_t
 			if (r > 0) {
 				int32_t HH[4], tt[4], en1 = st0 + (en0 - st0) / 4 * 4, i;
-				__m128i max_H_, max_t_;
+				__m128i max_H_, max_t_, t_, t4_ = _mm_set1_epi32(4);
 				max_H = H[en0] = en0 > 0? H[en0-1] + u8[en0] : H[en0] + v8[en0]; // special casing the last element
 				max_t = en0;
 				max_H_ = _mm_set1_epi32(max_H);
 				max_t_ = _mm_set1_epi32(max_t);
+				t_ = _mm_set1_epi32(st0);
 				for (t = st0; t < en1; t += 4) { // this implements: H[t]+=v8[t]-qe; if(H[t]>max_H) max_H=H[t],max_t=t;
-					__m128i H1, tmp, t_;
+					__m128i H1, tmp, v_;
 					H1 = _mm_loadu_si128((__m128i*)&H[t]);
-					t_ = ksw_i8x4_to_i32x4(&v8[t]);
-					H1 = _mm_add_epi32(H1, t_);
+					v_ = ksw_i8x4_to_i32x4(&v8[t]);
+					H1 = _mm_add_epi32(H1, v_);
 					_mm_storeu_si128((__m128i*)&H[t], H1);
-					t_ = _mm_set1_epi32(t);
 					tmp = _mm_cmpgt_epi32(H1, max_H_);
 #ifdef __SSE4_1__
-					max_H_ = _mm_blendv_epi8(max_H_, H1, tmp);
+					max_H_ = _mm_max_epi32(max_H_, H1);
 					max_t_ = _mm_blendv_epi8(max_t_, t_, tmp);
 #else
 					max_H_ = _mm_or_si128(_mm_and_si128(tmp, H1), _mm_andnot_si128(tmp, max_H_));
 					max_t_ = _mm_or_si128(_mm_and_si128(tmp, t_), _mm_andnot_si128(tmp, max_t_));
 #endif
+					t_ = _mm_add_epi32(t_, t4_);
 				}
 				_mm_storeu_si128((__m128i*)HH, max_H_);
 				_mm_storeu_si128((__m128i*)tt, max_t_);
