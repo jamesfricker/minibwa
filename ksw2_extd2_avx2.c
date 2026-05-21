@@ -244,31 +244,44 @@ void ksw_extd2_avx2(void *km, int qlen, const uint8_t *query, int tlen, const ui
 		if (!approx_max) { // find the exact max with a 32-bit score array
 			int32_t max_H, max_t;
 			if (r > 0) {
-				int32_t HH[4], tt[4], en1 = st0 + (en0 - st0) / 4 * 4, i;
-				__m128i max_H_, max_t_;
+				int32_t en1 = st0 + (en0 - st0) / 8 * 8, max_val;
+				__m256i max_val_ = _mm256_set1_epi32(INT32_MIN);
 				max_H = H[en0] = en0 > 0? H[en0-1] + u8[en0] : H[en0] + v8[en0];
 				max_t = en0;
-				max_H_ = _mm_set1_epi32(max_H);
-				max_t_ = _mm_set1_epi32(max_t);
-				for (t = st0; t < en1; t += 4) {
-					__m128i H1, tmp, t_;
-					H1 = _mm_loadu_si128((__m128i*)&H[t]);
-					t_ = _mm_setr_epi32(v8[t], v8[t+1], v8[t+2], v8[t+3]);
-					H1 = _mm_add_epi32(H1, t_);
-					_mm_storeu_si128((__m128i*)&H[t], H1);
-					t_ = _mm_set1_epi32(t);
-					tmp = _mm_cmpgt_epi32(H1, max_H_);
-					max_H_ = _mm_blendv_epi8(max_H_, H1, tmp);
-					max_t_ = _mm_blendv_epi8(max_t_, t_, tmp);
+				// pass 1: update H[] and find max value with AVX2
+				for (t = st0; t < en1; t += 8) {
+					__m256i H1, v_;
+					H1 = _mm256_loadu_si256((__m256i*)&H[t]);
+					v_ = _mm256_cvtepi8_epi32(_mm_loadl_epi64((const __m128i*)&v8[t]));
+					H1 = _mm256_add_epi32(H1, v_);
+					_mm256_storeu_si256((__m256i*)&H[t], H1);
+					max_val_ = _mm256_max_epi32(max_val_, H1);
 				}
-				_mm_storeu_si128((__m128i*)HH, max_H_);
-				_mm_storeu_si128((__m128i*)tt, max_t_);
-				for (i = 0; i < 4; ++i)
-					if (max_H < HH[i]) max_H = HH[i], max_t = tt[i] + i;
+				max_val_ = _mm256_max_epi32(max_val_, _mm256_permute2x128_si256(max_val_, max_val_, 0x01));
+				max_val_ = _mm256_max_epi32(max_val_, _mm256_shuffle_epi32(max_val_, 0x4e));
+				max_val_ = _mm256_max_epi32(max_val_, _mm256_shuffle_epi32(max_val_, 0xb1));
+				max_val = _mm256_extract_epi32(max_val_, 0);
 				for (; t < en0; ++t) {
 					H[t] += (int32_t)v8[t];
-					if (H[t] > max_H)
-						max_H = H[t], max_t = t;
+					if (H[t] > max_val) max_val = H[t];
+				}
+				// pass 2: find position with max_val using SSE-compatible tie-breaking
+				// SSE assigns position p to lane (p-st0)%4; lower lane wins, then earlier position
+				if (max_val > max_H) {
+					int best_lane = 4, en2 = st0 + ((en0 - st0) & ~7);
+					__m256i target = _mm256_set1_epi32(max_val);
+					for (t = st0; t < en2 && best_lane; t += 8) {
+						int mask = _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi32(_mm256_loadu_si256((__m256i*)&H[t]), target)));
+						while (mask) {
+							int i = __builtin_ctz(mask);
+							int lane = i & 3;
+							if (lane < best_lane) { best_lane = lane; max_t = t + i; }
+							mask &= mask - 1;
+						}
+					}
+					for (; t < en0 && best_lane; ++t)
+						if (H[t] == max_val && ((t - st0) & 3) < best_lane) { best_lane = (t - st0) & 3; max_t = t; }
+					max_H = max_val;
 				}
 			} else H[0] = v8[0] - qe, max_H = H[0], max_t = 0;
 			if (en0 == tlen - 1 && H[en0] > ez->mte)
