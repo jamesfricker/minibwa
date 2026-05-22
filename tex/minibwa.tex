@@ -183,11 +183,11 @@ $P\in\Sigma^*$ is a \emph{string} of length $|P|$.
 $P[i]$, $0\le i<|P|$, is the $i$-the symbol and
 $P[i,j)$ is the $(j-i)$-long substring starting at position $i$.
 Operator $\circ$ concatenates two strings.
-It may be omitted if string concatenation is apparent in the context.
+It may be omitted if concatenation is apparent in the context.
 For $a\in\Sigma$, $\overline{a}$ is the Watson-Crick complement of $a$.
 $\overline{P}$ is the reverse complement of string $P$.
 
-$R\in\Sigma^*$ is the reference genome with all contigs concatenated.
+$R\in\Sigma^*$ is the reference genome with all contigs concatenated and ambiguous bases converted to random bases.
 $T\triangleq R\circ\overline{R}\circ\$$ further concatenates $R$ and its reverse complement
 with a trailing \emph{sentinel} $\$$ that is smaller than all symbols in $\Sigma$.
 For convenience, let $n=|T|$ and $T[-1]=T[n-1]=\$$.
@@ -529,7 +529,7 @@ For example, if the reference genome has one copy of a gene but the sequenced sa
 all reads from the extra copy will be mismapped at high mapping quality.
 The theoretical accuracy as is shown in Fig.~\ref{fig:roc} may not reflect accuracy in downstream data processing.
 Nevertheless, such theoretical analysis helps to reveal subtle design flaws and hidden bugs in the implementation.
-It plays a critical role in the development of minibwa.
+It is invaluable to the development of minibwa.
 
 \subsection{Mapping performance on real data}
 
