@@ -70,17 +70,17 @@ Given that human Whole-Genome Sequencing (WGS) accounts for the vast majority of
 There have been several efforts to accelerate the original BWA-MEM algorithm.
 BWA-MEM2~\citep{DBLP:conf/ipps/VasimuddinMLA19} revamps the memory layout of FM-index
 and accelerates extension alignment with Single Instruction Multiple Data (SIMD) instructions.
-It is typically 50--100\% faster while producing identical alignment.
-BWA-MEME~\citep{Jung:2022aa} further speeds up BWA-MEM2 using learned indices while still producing identical output.
+It is 50--100\% faster while producing identical alignment.
+BWA-MEME~\citep{Jung:2022aa} further speeds up BWA-MEM2 seeding with learned indices.
 BWA-MEM3 is a new fork of BWA-MEM2 with speedup from latency hiding and additional fast paths to skip full dynamic programming.
 Sentieon BWA is a proprietary drop-in replacement of BWA-MEM.
 Parabricks~\citep{OConnell:2023aa,Zhu2025.07.23.666378} provides a GPU-based partial reimplementation of BWA-MEM
 that produces alignment functionally equivalent~\citep{Regier:2018aa} to BWA-MEM alignment.
 
-However, designed more than a decade ago, BWA-MEM has several limitations that prevent further optimization; these can be addressed if we accept breaking changes.
+However, designed more than a decade ago, BWA-MEM has several limitations that prevent further optimization without changing the output.
 First, BWA-MEM uses a complex algorithm to seed alignment~\citep{Li:2012fk} which is slower than a recent algorithm~\citep{DBLP:conf/dlt/Gagie24,Li:2024ac}.
 Second, BWA-MEM chaining is heuristic and inferior to the minimap2 chaining algorithm~\citep{Li:2018ab}.
-It likely does not work well for short reads longer than 500bp, which will become more common with Roche's SBX sequencing technology~\citep{Kokoris2025.02.19.639056}.
+It does not work well for short reads longer than 500bp, which will become more common with Roche's SBX sequencing technology~\citep{Kokoris2025.02.19.639056}.
 The boundary between short and long reads is blurring.
 Third, BWA-MEM uses a non-SIMD-based extension algorithm with intricate boundary conditions.
 This greatly complicates SIMD-based equivalence in BWA-MEM2 and increases maintenance burden.
@@ -240,7 +240,7 @@ Each block takes 64 bytes both on disk and in memory.
 When calculating $\pi(a,k)$, minibwa finds the address of the block that contains $B[k]$,
 reads the counts at the beginning of the block and scans the encoded sequences to get the exact count up to $k$.
 The BWT of the human genome takes $\sim$3 GB in RAM and is too large to fit the CPU cache.
-The calculation of most $\pi(a,k)$ incur cache misses.
+Calculating $\pi(a,k)$ incurs cache misses most of time.
 
 \subsection{A brief introduction to prefetching}
 
@@ -271,11 +271,10 @@ This way we keep the CPU busy and effectively hide the latency of accessing data
 \subsection{Batched locate operation}
 
 Suppose the ds-interval of $P$ is $(k,k',s)$.
-It only gives positions in the SA coordinate.
-To retrieve positions in $T$, we have to use suffix array $S$:
+$[k,k+s)$ only gives positions in the SA coordinate, while
 $\{S(i):k\le i<k+s\}$ is the set of $P$'s positions in $T$.
 To reduce memory with FM-index, we only store $S(i)$ when $i$ is a multiple of parameter $r$.
-The ``locate'' operation finds the positions of $P$ given a sampled suffix array $S$.
+The ``locate'' operation finds the chromosomal positions of $[k,k+s)$ given a sampled suffix array.
 
 Function {\sc LocateSlow()} in Algorithm~\ref{algo:sa} shows the canonical implementation of the locate operation which processes each SA position in turn.
 Line 8 triggers data access and computation at the same time.
