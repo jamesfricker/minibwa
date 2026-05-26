@@ -208,16 +208,23 @@ static void process_batch(void *km, const mb_idx_t *idx, const anchor_aux_t *aux
 	}
 }
 
-static void mb_anchor_split_meth(void *km, const l2b_t *l2b, int32_t min_len, int32_t qlen, const uint8_t *qseq, l2b_meth_t mt, mb_anchor_v *v)
+static void mb_anchor_split_meth(void *km, const l2b_t *l2b, int32_t min_len, int32_t qlen, const uint8_t *qseq0, l2b_meth_t mt, mb_anchor_v *v)
 {
 	int64_t i, m_a = v->n * 2, n_a = 0;
 	int32_t max_len = 0;
 	mb_anchor_t *a;
-	uint8_t *tseq;
+	uint8_t *tseq, *qseq2[2];
+
 	for (i = 0; i < v->n; ++i)
 		if (max_len < v->a[i].len)
 			max_len = v->a[i].len;
-	tseq = Kmalloc(km, uint8_t, max_len);
+	tseq = Kmalloc(km, uint8_t, max_len + qlen * 2);
+	qseq2[0] = tseq + max_len;
+	qseq2[1] = qseq2[0] + qlen;
+	memcpy(qseq2[0], qseq0, qlen);
+	for (i = 0; i < qlen; ++i)
+		qseq2[1][qlen - 1 - i] = qseq0[i] > 3? 4 : 3 - qseq0[i];
+
 	a = Kmalloc(km, mb_anchor_t, m_a);
 	for (i = 0; i < v->n; ++i) {
 		mb_anchor_t *p, *q = &v->a[i];
@@ -225,16 +232,15 @@ static void mb_anchor_split_meth(void *km, const l2b_t *l2b, int32_t min_len, in
 		int32_t rev = q->sid&1;
 		int64_t tpos = q->tpos - (ctg->off * 2 + ctg->len * rev); // NB: requiring concatenated ::tpos!!
 		int64_t ts = tpos + 1 - q->len;
-		int32_t qs = !rev? q->qpos + 1 - q->len : qlen - 1 - q->qpos, qe = qs + q->len;
+		int32_t qs = q->qpos + 1 - q->len;
 		int32_t j, j0;
 		uint8_t no_t, no_q;
+		const uint8_t *qseq = qseq2[rev] + qs;
 		l2b_getseq(l2b, q->sid>>1, ts, ts + q->len, tseq);
 		no_t = mt == L2B_METH_C2T? 3 : 0;
 		no_q = mt == L2B_METH_C2T? 1 : 2;
 		for (j0 = j = 0; j <= q->len; ++j) {
-			uint8_t qc = j == q->len? 4 : !rev? qseq[qs + j] : qseq[qe - 1 - j];
-			if (qc < 4 && rev) qc = 3 - qc;
-			if (j == q->len || tseq[j] == 4 || (tseq[j] != qc && !(tseq[j] == no_q && qc == no_t))) {
+			if (j == q->len || tseq[j] == 4 || qseq[j] == 4 || (tseq[j] != qseq[j] && !(tseq[j] == no_q && qseq[j] == no_t))) {
 				if (j - j0 >= min_len) {
 					Kgrow(km, mb_anchor_t, a, n_a, m_a);
 					p = &a[n_a++];
