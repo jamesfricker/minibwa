@@ -113,7 +113,7 @@ static void *worker_pipeline(void *shared, int step, void *in)
     pipeline_t *p = (pipeline_t*)shared;
 	const mb_opt_t *opt = p->opt;
     if (step == 0) { // step 0: read sequences
-		int with_qual = !!(opt->flag & MB_F_SAM);
+		int with_qual = !(opt->flag & MB_F_PAF);
 		int with_comment = !!(opt->flag & MB_F_COPY_COMMENT);
 		int frag_mode = (p->n_fp > 1 || !!(opt->flag & MB_F_PE));
         step_t *s;
@@ -219,7 +219,7 @@ static void *worker_pipeline(void *shared, int step, void *in)
 							mb_format(km, &out, idx->l2b, t, seg_en - seg_st, &s->n_hit[seg_st], &s->hit[seg_st], j, opt->flag, i - seg_st, mate_qlen);
 						n_sec += (h->parent != h->id);
 					}
-				} else if (!(opt->flag & MB_F_NO_UNMAP)) { // TODO: output unmapped reads
+				} else if (!(opt->flag & MB_F_NO_UNMAP)) {
 					mb_format(km, &out, idx->l2b, t, seg_en - seg_st, &s->n_hit[seg_st], &s->hit[seg_st], -1, opt->flag, i - seg_st, mate_qlen);
 				}
 			}
@@ -317,7 +317,7 @@ static int usage(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "Usage: minibwa map [options] <in.idx> <in.fastq>\n");
 	fprintf(fp, "Options:\n");
 	fprintf(fp, "  Common:\n");
-	fprintf(fp, "    -a               output SAM (PAF by default)\n");
+	fprintf(fp, "    -f               output PAF (SAM by default)\n");
 	fprintf(fp, "    -t INT           number of worker threads [%d]\n", opt->n_thread);
 	fprintf(fp, "    -l NUM           treat reads <NUM as short reads in the default adaptive mode [%d]\n", opt->max_sr_len);
 	fprintf(fp, "    -R STR           SAM read group line in a format like '@RG\\tID:foo\\tSM:bar' []\n");
@@ -372,7 +372,7 @@ static inline void yes_or_no(mb_opt_t *opt, uint64_t flag, int long_idx, const c
 
 int main_map(int argc, char *argv[])
 {
-	const char *opt_str = "x:o:k:c:m:p:A:B:U:b:O:E:t:K:N:PyYR:aul:w:W:g:5s:";
+	const char *opt_str = "x:o:k:c:m:p:A:B:U:b:O:E:t:K:N:PyYR:aul:w:W:g:5s:f";
 	int32_t c;
 	mb_idx_t *idx;
 	mb_opt_t mo;
@@ -408,7 +408,8 @@ int main_map(int argc, char *argv[])
 		else if (c == 'g') mo.max_gap = kom_parse_num(o.arg, 0);
 		else if (c == 'w') mo.bw = kom_parse_num(o.arg, 0);
 		else if (c == 'W') mo.bw_long = kom_parse_num(o.arg, 0);
-		else if (c == 'a') mo.flag |= MB_F_SAM;
+		else if (c == 'a') mo.flag &= ~MB_F_PAF;
+		else if (c == 'f') mo.flag |= MB_F_PAF;
 		else if (c == 'u') mo.flag |= MB_F_NO_UNMAP;
 		else if (c == 'y') mo.flag |= MB_F_COPY_COMMENT;
 		else if (c == 'Y') mo.flag |= MB_F_SUPP_SOFT;
@@ -488,7 +489,7 @@ int main_map(int argc, char *argv[])
 	if (kom_verbose >= 3)
 		fprintf(stderr, "[M::%s::%.3f*%.2f] index loaded\n", __func__, kom_realtime(), kom_percent_cpu());
 
-	if (mo.flag & MB_F_SAM) {
+	if (!(mo.flag & MB_F_PAF)) {
 		int ret;
 		kstring_t out = {0,0,0};
 		ret = mb_fmt_sam_hdr(&out, idx->l2b, rg_line, MB_VERSION, argc, argv);

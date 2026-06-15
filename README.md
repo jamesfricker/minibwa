@@ -5,15 +5,15 @@ cd minibwa && make
 
 # with test data
 ./minibwa index test/chrM-human.fa.gz chrM-human              # index the genome
-./minibwa map -a chrM-human test/chrM-read_?.fa.gz > aln.sam  # align and output in SAM
+./minibwa map chrM-human test/chrM-read_?.fa.gz > aln.sam     # align and output in SAM
 
 # other examples without test data
 minibwa map -t16 ref.index long-read.fq > aln.paf             # align long reads
-minibwa map -a --hic ref.index reads.interleaved.fq > aln.sam # align Hi-C short reads
+minibwa map --hic ref.index reads.interleaved.fq > aln.sam    # align Hi-C short reads
 
 # align *directional* bisulfite sequencing (BS-seq) reads
 minibwa index --meth -t8 ref.fa                               # generate BS-seq index
-minibwa map -a --meth ref.fa read1.fq read2.fq > aln.sam      # map BS-seq reads
+minibwa map --meth ref.fa read1.fq read2.fq > aln.sam         # map BS-seq reads
 ```
 
 ## Introduction
@@ -78,8 +78,8 @@ mode, minibwa additionally generates `ref.fa.meth.mbw` for the BWT of the
 By default, minibwa dynamically changes multiple internal parameters based on
 individual read lengths. It works for both short and accurate long reads.
 ```sh
-minibwa map -at8 ref.fa read1.fq read2.fq   # map paired-end reads and output SAM
-minibwa map -t8 ref.fa read.fa.gz           # map single-end or long reads and output PAF
+minibwa map -t8 ref.fa read1.fq read2.fq    # map paired-end reads and output SAM
+minibwa map -ft8 ref.fa read.fa.gz          # map single-end or long reads; output PAF
 minibwa map --hic ref.fa hic1.fq hic2.fq    # map Hi-C short reads
 minibwa map --meth ref.fa read1.fq read2.fq # map BS-seq reads; requiring "index --meth"
 ```
@@ -97,7 +97,7 @@ in batch, which is faster and also supports paired-end mapping.
 
 ## Limitations
 
-* Minibwa does not work with noisy long reads or spliced alignment.
+* Minibwa does not work with noisy long reads or spliced RNA-seq reads.
 * Minibwa does not support undirectional bisulfite sequencing data.
 
 [zlib]: https://zlib.net/

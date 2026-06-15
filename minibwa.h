@@ -3,9 +3,9 @@
 
 #include <stdint.h>
 
-#define MB_VERSION "0.0-r352-dirty"
+#define MB_VERSION "0.1-r363"
 
-#define MB_F_SAM              (0x1LL)       // output in the SAM format
+#define MB_F_PAF              (0x1LL)       // output in the PAF format
 #define MB_F_NO_UNMAP         (0x2LL)       // output unmapped query sequences
 #define MB_F_COPY_COMMENT     (0x4LL)       // copy FASTX comments to output
 #define MB_F_PE               (0x8LL)       // paired-end mode

@@ -147,7 +147,7 @@ static void mb_fix_cigar(mb_hit_t *r, const uint8_t *qseq, const uint8_t *tseq, 
 
 static void mm_update_cigar_eqx(mb_hit_t *r, const uint8_t *qseq, const uint8_t *tseq) // written by @armintoepfer
 {
-	uint32_t n_EQX = 0;
+	uint32_t n_EQX = 0, n_X = 0;
 	uint32_t k, l, m, cap, toff = 0, qoff = 0, n_M = 0;
 	mb_extra_t *p;
 	if (r->p == 0) return;
@@ -155,10 +155,10 @@ static void mm_update_cigar_eqx(mb_hit_t *r, const uint8_t *qseq, const uint8_t 
 		uint32_t op = r->p->cigar[k]&0xf, len = r->p->cigar[k]>>4;
 		if (op == MB_CIGAR_MATCH) {
 			while (len > 0) {
-				for (l = 0; l < len && qseq[qoff + l] == tseq[toff + l]; ++l) {} // run of "="; TODO: N<=>N is converted to "="
+				for (l = 0; l < len && qseq[qoff + l] == tseq[toff + l] && qseq[qoff + l] < 4; ++l) {} // run of "="; N is a mismatch (cf. e41830b for NM)
 				if (l > 0) { ++n_EQX; len -= l; toff += l; qoff += l; }
-				for (l = 0; l < len && qseq[qoff + l] != tseq[toff + l]; ++l) {} // run of "X"
-				if (l > 0) { ++n_EQX; len -= l; toff += l; qoff += l; }
+				for (l = 0; l < len && !(qseq[qoff + l] == tseq[toff + l] && qseq[qoff + l] < 4); ++l) {} // run of "X" (includes N<=>N)
+				if (l > 0) { ++n_EQX; ++n_X; len -= l; toff += l; qoff += l; }
 			}
 			++n_M;
 		} else if (op == MB_CIGAR_INS) {
@@ -169,8 +169,9 @@ static void mm_update_cigar_eqx(mb_hit_t *r, const uint8_t *qseq, const uint8_t 
 			toff += len;
 		}
 	}
-	// update in-place if we can
-	if (n_EQX == n_M) {
+	// update in-place only if every M op is a single pure "=" run (no "X",
+	// hence no mismatch or N); otherwise the emission pass below is needed
+	if (n_X == 0) {
 		for (k = 0; k < r->p->n_cigar; ++k) {
 			uint32_t op = r->p->cigar[k]&0xf, len = r->p->cigar[k]>>4;
 			if (op == MB_CIGAR_MATCH) r->p->cigar[k] = len << 4 | MB_CIGAR_EQ_MATCH;
@@ -189,13 +190,13 @@ static void mm_update_cigar_eqx(mb_hit_t *r, const uint8_t *qseq, const uint8_t 
 		uint32_t op = r->p->cigar[k]&0xf, len = r->p->cigar[k]>>4;
 		if (op == MB_CIGAR_MATCH) {
 			while (len > 0) {
-				// match
-				for (l = 0; l < len && qseq[qoff + l] == tseq[toff + l]; ++l) {}
+				// match ("="); N is a mismatch, so require both bases < 4
+				for (l = 0; l < len && qseq[qoff + l] == tseq[toff + l] && qseq[qoff + l] < 4; ++l) {}
 				if (l > 0) p->cigar[m++] = l << 4 | MB_CIGAR_EQ_MATCH;
 				len -= l;
 				toff += l, qoff += l;
-				// mismatch
-				for (l = 0; l < len && qseq[qoff + l] != tseq[toff + l]; ++l) {}
+				// mismatch ("X"); includes N<=>N
+				for (l = 0; l < len && !(qseq[qoff + l] == tseq[toff + l] && qseq[qoff + l] < 4); ++l) {}
 				if (l > 0) p->cigar[m++] = l << 4 | MB_CIGAR_X_MISMATCH;
 				len -= l;
 				toff += l, qoff += l;

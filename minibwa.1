@@ -1,4 +1,4 @@
-.TH minibwa 1 "9 May 2026" "minibwa-0.0 (r307)" "Bioinformatics tools"
+.TH minibwa 1 "15 June 2026" "minibwa-0.1 (r363)" "Bioinformatics tools"
 .SH NAME
 .PP
 minibwa - short/long-read alignment against a reference genome
@@ -23,7 +23,6 @@ minibwa index
 * Aligning short paired-end reads to an indexed genome and outputting SAM:
 .RS 4
 minibwa map
-.B -a
 .RB [ -t
 .IR nThreads ]
 .I idxPrefix
@@ -43,7 +42,7 @@ minibwa index
 .RI [ idxPrefix ]
 .br
 minibwa map
-.B --meth -a
+.B --meth
 .RB [ -t
 .IR nThreads ]
 .I idxPrefix
@@ -110,7 +109,6 @@ which combines C-to-T and G-to-A converted reference genomes.
 .SH THE MAP COMMAND
 .SS Summary
 .B minibwa map
-.RB [ -a ]
 .RB [ -x
 .IR preset ]
 .RB [ -t
@@ -119,19 +117,14 @@ which combines C-to-T and G-to-A converted reference genomes.
 .I read.fq.gz
 .RI [ read2.fq.gz ]
 
-Map reads to an index genome. By default, minibwa assumes short-read input and
-outputs alignment in the PAF format. Use
-.B -a
-for SAM output and preset
-.B -x lr
-for long-read alignment. In the short-read mode, minibwa automatically detects
+Map reads to an index genome. Minibwa automatically detects
 interleaved read pairs and like bwa-mem and minimap2, allowing mixed single-end
 and paired-ened reads as input.
 
 .SS Common Options
 .TP 10
-.B -a
-Output alignment in the SAM format (PAF by default)
+.B -f
+Output alignment in the PAF format (SAM by default)
 .TP
 .BI -t \ INT
 Number of worker CPU threads [1]. Minibwa additionally uses
@@ -336,9 +329,10 @@ Print version number
 
 .SH OUTPUT FORMATS
 .PP
-Minibwa outputs the PAF format by default. It is a TAB-delimited text format
-with each line consisting of at least 12 fields as are described in the
-following table:
+Minibwa outputs the SAM format by default. Options
+.B -f
+enables the PAF output. PAF is a TAB-delimited text format with each line
+consisting of at least 12 fields as are described in the following table:
 .TS
 center box;
 cb | cb | cb
@@ -360,9 +354,7 @@ _
 .TE
 
 .PP
-Option
-.B -a
-enables the SAM output. Both SAM and PAF may have addtional fields in typed
+Both SAM and PAF may have addtional fields in typed
 key-value format. Minibwa may output the following tags:
 .TS
 center box;
@@ -380,6 +372,6 @@ cs	Z	Difference string
 .SH LIMITATIONS
 .TP 2
 *
-Minibwa does not work with noisy long reads or spliced alignment.
+Minibwa does not work with noisy long reads or spliced RNA-seq reads.
 *
 Minibwa does not support undirectional bisulfite sequencing data.
