@@ -201,7 +201,7 @@ static void l2b_collate_str(l2b_t *l2b)
 			memcpy(p_comm, ctg->comm, len + 1);
 			free(ctg->comm);
 			ctg->comm = p_comm;
-		} else len = 1;
+		} else len = 0;
 		p_comm += len + 1;
 	}
 }
