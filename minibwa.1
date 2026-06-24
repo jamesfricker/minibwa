@@ -1,4 +1,4 @@
-.TH minibwa 1 "18 June 2026" "minibwa-0.2 (r370)" "Bioinformatics tools"
+.TH minibwa 1 "25 June 2026" "minibwa-0.2-dirty (r384)" "Bioinformatics tools"
 .SH NAME
 .PP
 minibwa - short/long-read alignment against a reference genome
@@ -307,6 +307,13 @@ Copy FASTA/Q comments to output
 .TP
 .B -Y
 In the SAM output, use soft clipping for supplementary alignments
+.TP
+.BI -H \ STR
+If
+.I STR
+starts with @, insert it to the SAM header; otherwise, treat
+.I STR
+as a file name and insert lines in this file to the SAM header []
 .TP
 .B -5
 In the SAM output, if a read has supplementary alignments, take the alignment

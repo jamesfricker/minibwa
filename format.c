@@ -49,7 +49,7 @@ void mb_fmt_paf(kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, const mb_hi
  * SAM header *
  **************/
 
-static char *mb_escape(char *s)
+char *mb_escape(char *s)
 {
 	char *p, *q;
 	for (p = q = s; *p; ++p) {
@@ -59,6 +59,7 @@ static char *mb_escape(char *s)
 			else if (*p == 'n') *q++ = '\n';
 			else if (*p == 'r') *q++ = '\r';
 			else if (*p == '\\') *q++ = '\\';
+			else if (*p == '\0') break;
 		} else *q++ = *p;
 	}
 	*q = '\0';

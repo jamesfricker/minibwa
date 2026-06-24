@@ -2,12 +2,15 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <zlib.h>
 #include "kommon.h"
 #include "mbpriv.h"
 #include "bseq.h"
 #include "kalloc.h"
 #include "kthread.h"
 #include "ketopt.h"
+#include "kseq.h"
+KSTREAM_INIT(gzFile, gzread, 0x10000)
 
 typedef struct {
 	int32_t n_fp, n_threads;
@@ -285,6 +288,35 @@ int32_t mb_map_file(const mb_opt_t *opt, const mb_idx_t *idx, int32_t n, const c
 	return 0;
 }
 
+/********************
+ * Arbitrary header *
+ ********************/
+
+static void mb_insert_hdr(kstring_t *out, const char *str)
+{
+	out->l = 0;
+	if (str[0] == '@' && strlen(str) > 4) {
+		char *dup;
+		dup = mb_escape(kom_strdup(str));
+		kom_sprintf_lite(out, "%s\n", dup);
+		free(dup);
+	} else if (str[0] != '@') {
+		int dret;
+		kstring_t tmp = {0,0,0};
+		gzFile fp;
+		kstream_t *ks;
+		fp = gzopen(str, "r");
+		if (fp == 0) return;
+		ks = ks_init(fp);
+		while (ks_getuntil(ks, KS_SEP_LINE, &tmp, &dret) >= 0)
+			if (tmp.s[0] == '@' && tmp.l > 4 && tmp.s[3] == '\t')
+				kom_sprintf_lite(out, "%s\n", tmp.s);
+		free(tmp.s);
+		ks_destroy(ks);
+		gzclose(fp);
+	}
+}
+
 /*******
  * CLI *
  *******/
@@ -350,6 +382,7 @@ static int usage(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "    --outn=INT       output up to INT secondary alignments [0]\n");
 	fprintf(fp, "    -y               copy FASTA/Q comments to output\n");
 	fprintf(fp, "    -Y               use soft clipping for supplementary alignments\n");
+	fprintf(fp, "    -H STR           if STR starts with @, insert to header; or insert lines in file STR []\n");
 	fprintf(fp, "    -5               take the alignment with the smallest query position as primary\n");
 	fprintf(fp, "    -K NUM1[,NUM2]   process NUM1-NUM2 bp of query sequences in a batch [100m,1g]\n");
 	fprintf(fp, "    --version        print version number\n");
@@ -372,12 +405,13 @@ static inline void yes_or_no(mb_opt_t *opt, uint64_t flag, int long_idx, const c
 
 int main_map(int argc, char *argv[])
 {
-	const char *opt_str = "x:o:k:c:m:p:A:B:U:b:O:E:t:K:N:PyYR:aul:w:W:g:5s:f";
+	const char *opt_str = "x:o:k:c:m:p:A:B:U:b:O:E:t:K:N:PyYR:H:aul:w:W:g:5s:f";
 	int32_t c;
 	mb_idx_t *idx;
 	mb_opt_t mo;
 	char *fn_out = 0, *rg_line = 0, *s;
 	ketopt_t o = KETOPT_INIT;
+	kstring_t str_hdr = {0,0,0};
 
 	mb_opt_init(&mo);
 	while ((c = ketopt(&o, argc, argv, 1, opt_str, long_options)) >= 0) { // test command line options and apply option -x/preset first
@@ -419,6 +453,7 @@ int main_map(int argc, char *argv[])
 		else if (c == 'o') fn_out = o.arg;
 		else if (c == 't') mo.n_thread = atoi(o.arg);
 		else if (c == 'R') rg_line = o.arg;
+		else if (c == 'H') mb_insert_hdr(&str_hdr, o.arg);
 		else if (c == 301) { // --kalloc
 			yes_or_no(&mo, MB_F_NO_KALLOC, o.longidx, o.arg, 0);
 		} else if (c == 302) { // --outn
@@ -494,9 +529,11 @@ int main_map(int argc, char *argv[])
 		kstring_t out = {0,0,0};
 		ret = mb_fmt_sam_hdr(&out, idx->l2b, rg_line, MB_VERSION, argc, argv);
 		if (ret < 0) return 1; // TODO: free idx and out.s
+		if (str_hdr.l > 0) kom_sprintf_lite(&out, "%s", str_hdr.s);
 		fwrite(out.s, 1, out.l, stdout);
 		free(out.s);
 	}
+	if (str_hdr.s) free(str_hdr.s);
 
 	mb_map_file(&mo, idx, argc - (o.ind + 1), (const char**)&argv[o.ind+1], fn_out);
 	mb_idx_destroy(idx);
