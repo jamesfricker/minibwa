@@ -1,3 +1,4 @@
+[![Build Status](https://github.com/lh3/minibwa/actions/workflows/build.yml/badge.svg)](https://github.com/lh3/minibwa/actions)
 [![Bioconda](https://img.shields.io/conda/dn/bioconda/minibwa.svg?style=flag&label=Bioconda)](https://anaconda.org/bioconda/minibwa)
 [![Homebrew](https://img.shields.io/homebrew/v/minibwa)](https://formulae.brew.sh/formula/minibwa)
 [![preprint](https://img.shields.io/badge/arXiv-2606.15357-blue)](https://arxiv.org/abs/2606.15357)
@@ -105,12 +106,31 @@ independently; [api-test/ex-batch.c](api-test/ex-batch.c) aligns multiple reads
 in batch, which is faster and also supports paired-end mapping.
 [dev.md](dev.md) explains how minibwa differs from BWA-MEM and minimap2.
 
+## License
+
+Minibwa is distributed under the MIT license. It also incorporates source code
+from the following projects:
+
+ * libsais: Apache 2 License. Copyright (c) 2021-2025 Ilya Grebnov
+ * mimalloc: MIT License. Copyright (c) 2018-2026 Microsoft Corporation, Daan Leijen
+
+The master branch is optionally built on the following projects:
+
+ * QSufSort: HPND License. Copyright (c) 1999 N. Jesper Larsson
+ * bwtgen: GPL 2 License. Copyright (c) 2004 Wong Chi Kwong
+
+Notably, the master branch includes GPL'd [bwtgen.c](bwtgen.c) for low-memory
+BWT construction. If you compile this file, which is the default, the resulting
+binary will be GPL'd. You can disable the low-memory algorithm with `make
+gpl=0`. The [Apache2 branch][apache2] does not include GPL'd source code.
+
 ## Limitations
 
 * Minibwa does not work with noisy long reads or spliced RNA-seq reads.
 * Minibwa does not support undirectional bisulfite sequencing data.
 * Minibwa does not recognize alternate haplotypes.
 
+[apache2]: https://github.com/lh3/minibwa/tree/Apache2
 [zlib]: https://zlib.net/
 [mimalloc]: https://github.com/microsoft/mimalloc
 [libsais]: https://github.com/IlyaGrebnov/libsais

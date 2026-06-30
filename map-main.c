@@ -376,7 +376,7 @@ static int usage_map(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "    -E INT1[,INT2]   gap extension penalty [%d,%d]\n", opt->e, opt->e2);
 	fprintf(fp, "    -s INT           suppress alignment with DP score lower than INT*{-A} [%d]\n", opt->min_dp_max);
 	fprintf(fp, "  Paired-end:\n");
-	fprintf(fp, "    -P               skip pairing and mate resuce\n");
+	fprintf(fp, "    -P               skip pairing and mate rescue\n");
 	fprintf(fp, "    --rescue=INT     mate rescue for up to INT candidates; 0 to skip rescue [%d]\n", opt->max_rescue);
 	fprintf(fp, "  Input/Output:\n");
 	fprintf(fp, "    -o FILE          output file name [stdout]\n");
@@ -580,7 +580,7 @@ static int usage_mem(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "    -v INT         verbose level: 1=error, 2=warning, 3=message, 4+=debugging [%d]\n", kom_verbose);
 	fprintf(fp, "    -T INT         suppress alignment with DP score lower than INT*{-A} [%d]\n", opt->min_dp_max);
 	fprintf(fp, "    -h INT         max secondary alignments at the XA tag [%d]\n", opt->xa_max);
-	fprintf(fp, "    -z FLOAT       ignore in XA is score < FLOAT*bestScore [%g]\n", opt->xa_ratio);
+	fprintf(fp, "    -z FLOAT       skip XA if score < FLOAT*bestScore [%g]\n", opt->xa_ratio);
 	fprintf(fp, "    -a             output all alignments\n");
 	fprintf(fp, "    -C             copy FASTA/Q comments to output\n");
 	fprintf(fp, "    *V             output the reference FASTA header in the XR tag\n");
