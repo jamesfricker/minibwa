@@ -141,6 +141,24 @@ GRC problematic/false-duplication exclusion mask bundled with minibwa. Use
 provide a BED file explicitly with `--problematic-bed=FILE`; overlapping SAM/PAF
 records get the local tag `gm:Z:GRC` and remain in the output.
 
+#### HMF unmap regions (GRCh38)
+
+Minibwa can annotate hits that fall inside the Hartwig Medical Foundation (HMF)
+`unmap_regions` for GRCh38:
+```sh
+minibwa map --human-profile=hmf-grch38 ref.fa read1.fq read2.fq   # auto-discover unmap_regions.38.tsv
+minibwa map --unmap-regions=unmap_regions.38.tsv ref.fa reads.fq  # use an explicit file
+```
+`--human-profile=hmf-grch38` looks for the standard `unmap_regions.38.tsv`
+resource in the working directory, in the `MINIBWA_HMF_RESOURCES`,
+`HMF_RESOURCES`, or `HMF_RESOURCE_DIR` directories, and next to the index
+prefix. Use `--unmap-regions=FILE` to point at the TSV explicitly (the file has
+`Chromosome`, `PosStart`, `PosEnd`, and `MaxDepth` columns with 1-based
+inclusive coordinates). Hits overlapping an unmap region are tagged with
+`ur:Z:unmap` and `ud:i:<depth>` (the maximum depth of the overlapping regions)
+in the SAM/PAF output. This only adds annotation tags; it does not change read
+placement or mapping quality.
+
 #### Mapping with legacy bwa-mem CLI
 
 Minibwa also provides legacy bwa-mem command-line interface (CLI) via the `mem` subcommand.
