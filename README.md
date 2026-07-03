@@ -125,6 +125,12 @@ entirely within a soft-masked interval are dropped during seeding, and the
 mapping quality of an alignment is capped at 10 when most of its reference span
 is soft-masked. References with no soft-masked bases are unaffected.
 
+For GRCh38, `--grch38-mask` caps and tags alignments that overlap the compact
+GRC problematic/false-duplication exclusion mask bundled with minibwa. Use
+`--problematic-mapq-cap=INT` to change the default cap of 10. You can also
+provide a BED file explicitly with `--problematic-bed=FILE`; overlapping SAM/PAF
+records get the local tag `gm:Z:GRC` and remain in the output.
+
 #### Mapping with legacy bwa-mem CLI
 
 Minibwa also provides legacy bwa-mem command-line interface (CLI) via the `mem` subcommand.
@@ -137,7 +143,8 @@ Minibwa provides basic APIs for loading index and aligning reads.
 [examples/ex-one.c](examples/ex-one.c) shows an example to align each read
 independently; [examples/ex-batch.c](examples/ex-batch.c) aligns multiple reads
 in batch, which is faster and also supports paired-end mapping. Run `make
-examples` to build both examples.
+examples` to build both examples. Run `make test` to build minibwa and run the
+`tests/` shell tests, including the problematic-region mask regression.
 [docs/dev.md](docs/dev.md) explains how minibwa differs from BWA-MEM and minimap2.
 
 ### Project layout

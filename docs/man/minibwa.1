@@ -185,6 +185,20 @@ Mapping quality cap applied by
 .B --hmf-sv-blacklist
 [10]. A negative value tags overlapping hits without capping their mapping
 quality.
+.TP
+.BR --grch38-mask [= \fIFILE ]
+Cap and tag alignments that overlap the compact GRCh38 GRC
+problematic/false-duplication exclusion mask bundled with minibwa. If
+.I FILE
+is provided, load intervals from that BED file instead of the built-in table.
+.TP
+.BR --problematic-bed = \fIFILE
+Cap and tag alignments that overlap intervals from a BED file.
+.TP
+.BI --problematic-mapq-cap= INT
+MAPQ cap for problematic-region alignments [10]. Overlapping alignments are
+still output and receive the local SAM/PAF tag
+.BR gm:Z:GRC .
 
 .SS Mapping Options
 .TP 10
