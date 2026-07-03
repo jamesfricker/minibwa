@@ -87,8 +87,8 @@ typedef struct {
 	int32_t out_n;    // max number of secondary alignments to output
 	int32_t seed;
 	int32_t xa_max;
-	int32_t numt_score_diff;
-	int32_t numt_mapq_cap;
+	int32_t numt_score_diff; // max chrM-vs-nuclear score gap treated as ambiguous (MB_F_NUMT)
+	int32_t numt_mapq_cap;   // mapQ cap for ambiguous chrM-vs-nuclear hits (MB_F_NUMT)
 	float xa_ratio;
 	int64_t mb_size;  // mini-batch size
 	int64_t max_mb_size;

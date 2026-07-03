@@ -114,6 +114,13 @@ Similarity to minimap2:
    bases. This mode cannot be combined with the BWA pac output (`fa2bit -p`),
    which has no room to store the flag.
 
+ * With the optional `--numt` policy (`MB_F_NUMT`), minibwa handles reads that
+   compete between chrM and nuclear contigs deterministically
+   (`mb_apply_numt_primary`, `mb_apply_numt_mapq`). Exact score ties prefer the
+   nuclear placement, near-tie chrM/nuclear competitors are mapping-quality
+   capped and tagged `ng:Z:chrM-nuclear`, and unique chrM reads keep high mapping
+   quality. The policy is opt-in, so default behavior is unchanged.
+
  * Minibwa natively aligns directional BS-seq reads.
 
  * With `index --human-resources`, minibwa imports HMF human resource BED/TSV
