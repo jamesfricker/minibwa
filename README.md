@@ -59,6 +59,25 @@ make gpl=0       # disable GPL'd code for low-memory BWT building (no effect on 
 make mimalloc=0  # disable mimalloc and use the system malloc+kalloc instead
 ```
 This produces a single binary `minibwa` which you can copy to your `PATH`.
+
+For deployment builds on CPU-bound mapping workloads, the Makefile also
+provides explicit optimized release paths without changing the default developer
+build:
+```sh
+make release-lto
+
+make pgo-generate
+PGO_TRAIN_CMD='./minibwa map -t1 -P -o /dev/null ref.index reads.fastq' make pgo-train
+make pgo-use
+```
+Use a representative indexed reference and read set for `PGO_TRAIN_CMD`; mapping
+training data should resemble the production workload you want to optimize.
+`make pgo` runs the three PGO stages in order when `PGO_TRAIN_CMD` is supplied.
+Clang builds require `llvm-profdata`; `make pgo-use` merges raw profiles before
+rebuilding with them.
+Advanced builds can also use `make lto=1`, `make pgo=generate`, or
+`make pgo=use` directly.
+
 Minibwa also supports CMake for package-manager and IDE integrations:
 ```sh
 cmake -S . -B build/cmake
