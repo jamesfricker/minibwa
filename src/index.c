@@ -112,7 +112,7 @@ static int usage_fa2bit(FILE *fp, uint64_t seed)
 	fprintf(fp, "  -s INT    random seed [%lu]\n", (unsigned long)seed);
 	fprintf(fp, "  -p        output the BWA pac format\n");
 	fprintf(fp, "  -2        output both strands (effective with -p)\n");
-	fprintf(fp, "  --human   prevent seeding through ambiguous reference bases\n");
+	fprintf(fp, "  --human   prevent seeding through ambiguous reference bases (not with -p)\n");
 	fprintf(fp, "  --help    print this help message\n");
 	return fp == stdout? 0 : 1;
 }
@@ -132,6 +132,10 @@ int main_fa2bit(int argc, char *argv[])
 		else if (c == 903) human_mode = 1;
 	}
 	if (argc - o.ind < 2) return usage_fa2bit(stderr, seed);
+	if (human_mode && out_pac) {
+		if (kom_verbose >= 1) fprintf(stderr, "ERROR: --human is not supported with -p; the BWA pac format cannot store the human flag.\n");
+		return 1;
+	}
 	l2b = l2b_import(argv[o.ind], seed);
 	if (human_mode) l2b->flag |= L2B_F_NO_AMBI_SEED;
 	if (out_pac)
