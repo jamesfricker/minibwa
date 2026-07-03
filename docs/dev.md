@@ -86,4 +86,11 @@ Similarity to minimap2:
    reference span is soft-masked (`mb_cap_mapq_by_mask`). A reference without
    soft-masked bases is unaffected.
 
+ * With `index --human`, minibwa sets the `L2B_F_NO_AMBI_SEED` flag in the
+   `l2bit` file and records the intervals of ambiguous (`N`) reference bases. At
+   mapping time it then discards any seed anchor overlapping such an interval
+   (`l2b_has_ambi_global`), so no seeds fall inside runs of randomized `N`
+   bases. This mode cannot be combined with the BWA pac output (`fa2bit -p`),
+   which has no room to store the flag.
+
  * Minibwa natively aligns directional BS-seq reads.
