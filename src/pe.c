@@ -33,7 +33,7 @@ static const mb_hit_t *mb_select_unique_se(int32_t n_hit, const mb_hit_t *hit)
 {
 	int32_t j, n_pri = 0, mapq = 0, k = -1;
 	for (j = 0; j < n_hit; ++j)
-		if (hit[j].id == hit[j].parent) 
+		if (hit[j].id == hit[j].parent)
 			++n_pri, mapq = hit[j].mapq, k = j;
 	return n_pri == 1 && mapq >= 10? &hit[k] : 0;
 }
