@@ -205,12 +205,6 @@ static void l2b_add_seq(l2b_t *l2b, uint64_t len, const char *seq, const char *n
 		l2b->mask[l2b->n_mask].en = off + len;
 		l2b->n_mask++;
 	}
-	if (ambi_len > 0) {
-		kom_grow(l2b_intv_t, l2b->ambi, l2b->n_ambi, l2b->m_ambi);
-		l2b->ambi[l2b->n_ambi].st = off + len - ambi_len;
-		l2b->ambi[l2b->n_ambi].en = off + len;
-		l2b->n_ambi++;
-	}
 }
 
 static void l2b_collate_str(l2b_t *l2b)
