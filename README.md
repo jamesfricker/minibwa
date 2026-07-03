@@ -104,6 +104,17 @@ Note in the default adaptive mode, `-g`/`-w`/`-W`/`-N`/`-m`/`-s` only changes
 the short-read setting; the long-read setting is fixed. This mode is disabled
 with `--adap=no` or when `-x sr` or `-x lr` is specified.
 
+#### Pseudoautosomal regions (chrX/chrY)
+
+When the reference is recognized as a human GRCh37 or GRCh38 assembly, minibwa
+detects the built-in chrX/chrY pseudoautosomal regions (PAR1 and PAR2) from the
+loaded reference dictionary. Reads placed at equivalent chrX and chrY PAR
+coordinates are grouped so the chrX/chrY twin does not collapse the mapping
+quality; minibwa keeps a deterministic chrX hit as the primary and tags PAR
+alignments with a `pa:Z:PAR1` or `pa:Z:PAR2` tag in the SAM/PAF output.
+References that are not recognized as GRCh37 or GRCh38 keep the ordinary
+minibwa behavior.
+
 #### Mapping with legacy bwa-mem CLI
 
 Minibwa also provides legacy bwa-mem command-line interface (CLI) via the `mem` subcommand.
