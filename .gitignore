@@ -1,4 +1,5 @@
 .*.swp
+.DS_Store
 build/
 CMakeFiles/
 CMakeCache.txt
@@ -14,3 +15,22 @@ aln.sam
 chrM-human.l2b
 chrM-human.mbw
 tmp
+
+# Python-generated files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local environments
+.venv/
+venv/
+env/
+
+# Logs and generated benchmark output
+*.log
+*.out
