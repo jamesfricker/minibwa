@@ -131,8 +131,8 @@ mb_idx_t *mb_idx_load(const char *prefix, int32_t is_meth);
 void mb_idx_destroy(mb_idx_t *idx);
 const char *mb_idx_ctg_name(const mb_idx_t *idx, int32_t tid);
 int64_t mb_idx_ctg_len(const mb_idx_t *idx, int32_t tid);
-int64_t mb_idx_load_sv_blacklist(mb_idx_t *idx, const char *fn);
-void mb_idx_clear_sv_blacklist(mb_idx_t *idx);
+int64_t mb_idx_load_sv_blacklist(mb_idx_t *idx, const char *fn); // load HMF SV-prep blacklist BED (0-based half-open); returns intervals read, or -1 on open failure
+void mb_idx_clear_sv_blacklist(mb_idx_t *idx); // free the HMF SV-prep blacklist attached to an index
 
 void mb_opt_init(mb_opt_t *opt);
 int mb_opt_preset(mb_opt_t *opt, const char *preset);
