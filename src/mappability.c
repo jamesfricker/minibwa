@@ -12,7 +12,7 @@
 KSTREAM_INIT(gzFile, gzread, 0x10000)
 
 typedef struct {
-	int32_t st, en;
+	int32_t st, en, max_en;
 	uint8_t cap;
 } mb_mapq_intv_t;
 
@@ -128,6 +128,8 @@ static void sort_and_merge(mb_mapq_intv_v *v)
 		}
 	}
 	v->n = k;
+	for (i = 0; i < v->n; ++i)
+		v->a[i].max_en = (i > 0 && v->a[i - 1].max_en > v->a[i].en)? v->a[i - 1].max_en : v->a[i].en;
 }
 
 mb_mapq_track_t *mb_mapq_track_load(const mb_idx_t *idx, const char *fn, int32_t default_cap)
@@ -209,6 +211,7 @@ static int32_t mb_mapq_track_cap(const mb_mapq_track_t *track, int64_t tid, int6
 		else hi = mid;
 	}
 	while (--lo >= 0) {
+		if (v->a[lo].max_en <= st) break;
 		if (v->a[lo].en > st && v->a[lo].cap < cap) cap = v->a[lo].cap;
 	}
 	return cap;
