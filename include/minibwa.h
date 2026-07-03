@@ -25,6 +25,7 @@
 #define MB_F_METH             (0x20000LL)   // methylation mode
 #define MB_F_HUMAN_ALT        (0x40000LL)   // human ALT/HLA-aware SAM tags
 #define MB_F_HMF_SV_BLACKLIST (0x80000LL)   // downweight split/inversion hits in HMF SV-prep blacklisted regions
+#define MB_F_PROBLEMATIC_MASK (0x100000LL)  // cap/tag hits overlapping known problematic regions
 
 #define MB_CIGAR_MATCH      0
 #define MB_CIGAR_INS        1
@@ -87,6 +88,7 @@ typedef struct {
 	int64_t max_sw_mat;
 	int64_t cap_kalloc;
 	int32_t sv_blacklist_mapq; // MAPQ cap for split/inversion hits overlapping an HMF SV-prep blacklist
+	int32_t problematic_mapq_cap;
 } mb_opt_t;
 
 struct mb_idx_s;
@@ -116,7 +118,7 @@ typedef struct {
 	int32_t mlen, blen;
 	int32_t mapq;
 	uint32_t hash;
-	uint32_t rev:1, proper_pair:1, sam_pri:1, flt:1, inv:1, split:2, split_inv:1, rescued:1, sv_blacklist:1, frac_high:8, seed_ratio:8, par:2, dummy:4;
+	uint32_t rev:1, proper_pair:1, sam_pri:1, flt:1, inv:1, split:2, split_inv:1, rescued:1, sv_blacklist:1, problematic:1, frac_high:8, seed_ratio:8, par:2, dummy:3;
 	mb_extra_t *p;
 } mb_hit_t;
 
@@ -133,6 +135,8 @@ const char *mb_idx_ctg_name(const mb_idx_t *idx, int32_t tid);
 int64_t mb_idx_ctg_len(const mb_idx_t *idx, int32_t tid);
 int64_t mb_idx_load_sv_blacklist(mb_idx_t *idx, const char *fn); // load HMF SV-prep blacklist BED (0-based half-open); returns intervals read, or -1 on open failure
 void mb_idx_clear_sv_blacklist(mb_idx_t *idx); // free the HMF SV-prep blacklist attached to an index
+int mb_idx_set_grch38_problematic(mb_idx_t *idx);
+int mb_idx_load_problematic_bed(mb_idx_t *idx, const char *fn);
 
 void mb_opt_init(mb_opt_t *opt);
 int mb_opt_preset(mb_opt_t *opt, const char *preset);

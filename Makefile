@@ -103,6 +103,7 @@ test: $(PROG)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) tests/test_sam_alt_hla.c $(LIB_TARGET) -o $(BUILD_DIR)/test_sam_alt_hla $(LDLIBS)
 	$(BUILD_DIR)/test_sam_alt_hla
 	./bench/run-human-benchmark.py --out-dir .context/human-benchmark
+	sh tests/test-problematic-mask.sh
 
 $(OBJ_DIR)/third_party/mimalloc/static.o: third_party/mimalloc/static.c
 	@mkdir -p $(dir $@)
