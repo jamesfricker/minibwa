@@ -120,6 +120,30 @@ int64_t l2b_getambi(const l2b_t *l2b, int64_t tid, int64_t st, int64_t en, int32
 	return i_st;
 }
 
+int64_t l2b_mask_overlap(const l2b_t *l2b, int64_t tid, int64_t st, int64_t en)
+{
+	int64_t g_beg, g_end, lo, hi, mid, i, overlap = 0;
+	if (tid < 0 || tid >= l2b->n_ctg) return 0;
+	if (st < 0) st = 0;
+	if (en > l2b->ctg[tid].len) en = l2b->ctg[tid].len;
+	if (st >= en || l2b->n_mask == 0) return 0;
+	g_beg = l2b->ctg[tid].off + st;
+	g_end = l2b->ctg[tid].off + en;
+
+	lo = 0, hi = l2b->n_mask;
+	while (lo < hi) {
+		mid = (lo + hi) / 2;
+		if (l2b->mask[mid].en > g_beg) hi = mid;
+		else lo = mid + 1;
+	}
+	for (i = lo; i < (int64_t)l2b->n_mask && l2b->mask[i].st < (uint64_t)g_end; ++i) {
+		int64_t s = l2b->mask[i].st > (uint64_t)g_beg? (int64_t)l2b->mask[i].st : g_beg;
+		int64_t e = l2b->mask[i].en < (uint64_t)g_end? (int64_t)l2b->mask[i].en : g_end;
+		if (s < e) overlap += e - s;
+	}
+	return overlap;
+}
+
 static void l2b_format_seq(uint64_t len, char *seq, uint64_t *rng)
 {
 	uint64_t i;
@@ -174,6 +198,12 @@ static void l2b_add_seq(l2b_t *l2b, uint64_t len, const char *seq, const char *n
 			ambi_len = 0;
 		}
 		l2b->pac[x>>5] |= (c&3) << (x&0x1f)*2;
+	}
+	if (mask_len > 0) {
+		kom_grow(l2b_intv_t, l2b->mask, l2b->n_mask, l2b->m_mask);
+		l2b->mask[l2b->n_mask].st = off + len - mask_len;
+		l2b->mask[l2b->n_mask].en = off + len;
+		l2b->n_mask++;
 	}
 }
 
