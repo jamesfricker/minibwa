@@ -134,7 +134,7 @@ DEPS := $(LIB_OBJS:.o=.d) $(APP_OBJS:.o=.d) $(MAIN_OBJ:.o=.d) $(MIMALLOC_OBJ:.o=
 OPT_STAMP := $(OBJ_DIR)/.opt-flags
 OPT_FINGERPRINT := $(OPT_CFLAGS) $(OPT_LDFLAGS)
 
-.PHONY: all clean examples test release-lto pgo pgo-generate pgo-train pgo-use FORCE
+.PHONY: all clean examples test upstream-compare release-lto pgo pgo-generate pgo-train pgo-use FORCE
 
 all: $(PROG)
 
@@ -156,6 +156,10 @@ test: $(PROG) $(BUILD_DIR)/test-unmap-regions
 	$(BUILD_DIR)/test-unmap-regions tests/data/unmap_regions.38.tsv
 	./bench/run-human-benchmark.py --out-dir .context/human-benchmark
 	sh tests/test-problematic-mask.sh
+	sh tests/test-single-end-fast.sh
+
+upstream-compare:
+	./bench/compare-upstream.sh
 
 $(BUILD_DIR)/test-unmap-regions: tests/test-unmap-regions.c src/unmap.c src/kommon.c
 	@mkdir -p $(dir $@)

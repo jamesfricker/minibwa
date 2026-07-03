@@ -63,6 +63,9 @@ make
 ```
 
 Pass `--reads reads.fq` instead of `--reads1`/`--reads2` for single-end inputs.
+For confirmed R1-only or single-end short-read mapping outside this harness,
+prefer `minibwa map --single-end ...` to skip paired-end statistics, pair
+selection, and mate rescue work.
 Use `--index-prefix /path/to/existing/prefix` to reuse an existing `.mbw`/`.l2b`
 index. Add `--expect-primary-tsv expected.tsv` when a targeted truth set has
 known placements. The TSV format is:

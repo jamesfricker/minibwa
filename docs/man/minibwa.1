@@ -351,8 +351,10 @@ costs
 
 .SS Paired-end Options
 .TP 10
-.B -P
-Skip read pairing and mate rescue
+.BR -P ,
+.B --single-end
+Skip read pairing and mate rescue. This is recommended for R1-only or other
+confirmed single-end short-read inputs when paired-end work is not needed.
 .TP
 .BR --rescue = \fIINT
 Mate rescue for up to
