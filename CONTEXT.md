@@ -73,8 +73,12 @@ The loaded mapping structure that combines an **L2Bit Reference** and one **FM-i
 _Avoid_: database, reference handle, BWT
 
 **Index Prefix**:
-The filesystem stem used to locate the `.l2b`, `.mbw`, and optional methylation `.meth.mbw` files for an Index.
+The filesystem stem used to locate the `.l2b`, `.mbw`, optional methylation `.meth.mbw`, and optional `.hmf.tsv` human-resource sidecar files for an Index.
 _Avoid_: reference path, output prefix
+
+**HMF Resource Sidecar**:
+The optional `.hmf.tsv` manifest written next to an Index Prefix by `index --human-resources`. It records the HMF human resource inventory (mappability, unmap regions, SV blacklist, HLA, germline blacklist) with per-resource record counts, covered bases, checksums, and the detected GRCh37/GRCh38 genome build. It is metadata about human resources, not part of the searchable Index.
+_Avoid_: resource manifest when the specific sidecar file matters
 
 ### Reads and Mapping
 
@@ -215,7 +219,7 @@ Use **Mini-batch** for input and worker scheduling. Use **SMEM Sub-batch** for t
 - One **Human Mapping Workload** uses one **Human Reference Assembly** as its usual Reference Genome.
 - One **Human Reference Assembly** contains one **Primary Assembly** and may contain zero or more **Alternate Contigs** or **Decoy Sequences**.
 - One **Reference Genome** contains one or more **Contigs**.
-- One **Index Prefix** identifies one **L2Bit Reference**, one primary **FM-index**, and optionally one methylation **FM-index**.
+- One **Index Prefix** identifies one **L2Bit Reference**, one primary **FM-index**, optionally one methylation **FM-index**, and optionally one **HMF Resource Sidecar**.
 - One loaded **Index** owns one **L2Bit Reference** and one active **FM-index**.
 - One **Query Read** produces zero or more **Seed Intervals**.
 - One **Seed Interval** may materialize into zero or more **Anchors**, depending on occurrence limits and coordinate decoding.

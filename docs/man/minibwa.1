@@ -147,6 +147,13 @@ high-occurrence anchors that fall entirely within a soft-masked interval during
 seeding and caps the mapping quality at 10 when most of an alignment's reference
 span is soft-masked. An index with no soft-masked bases is unaffected.
 
+If the index has an
+.IR idxPrefix .hmf.tsv
+sidecar written by
+.BR "index --human-resources" ,
+minibwa warns when its recorded resource build disagrees with the detected
+index build but otherwise maps normally.
+
 .SS Common Options
 .TP 10
 .B -f
