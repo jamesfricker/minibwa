@@ -6,6 +6,7 @@
 #include "kalloc.h"
 #include "kommon.h"
 #include "ksort.h"
+#include "human_resources.h"
 
 #define key_128x(a) ((a).x)
 KRADIX_SORT_INIT(mb128x, mb128_t, key_128x, 8)
@@ -137,6 +138,7 @@ mb_idx_t *mb_idx_load(const char *prefix, int32_t is_meth)
 		goto end_idx_load;
 	}
 	mb_bwt_cache(bwt, 10); // TODO: don't hard code this
+	mb_human_resources_warn_mismatch(prefix, l2b);
 	idx = kom_calloc(mb_idx_t, 1);
 	idx->is_meth = !!is_meth, idx->l2b = l2b, idx->bwt = bwt;
 end_idx_load:

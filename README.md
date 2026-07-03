@@ -78,11 +78,15 @@ minibwa index ref.fa prefix  # use a different index prefix instead of ref.fa
 minibwa index -l ref.fa      # use less memory at the cost of performance
 minibwa index --meth ref.fa  # generate BS-seq index
 minibwa index --human ref.fa # prevent seeds through ambiguous reference bases
+minibwa index ref.fa prefix --human-resources hmftools.tar.gz  # add HMF resource manifest
 ```
 Minibwa generates two files: `ref.fa.l2b` for 2-bit encoded reference genome
 sequences and `ref.fa.mbw` for BWT and sampled suffix array. In the `--meth`
 mode, minibwa additionally generates `ref.fa.meth.mbw` for the BWT of the
-3-base genome.
+3-base genome. With `--human-resources`, minibwa reads the HMF mappability,
+unmap-region, blacklist, and HLA BED/TSV resources from an extracted directory
+or `hmftools` tarball and writes `ref.fa.hmf.tsv` with resource counts,
+checksums, and genome-build metadata.
 
 Lowercase bases in the reference FASTA are treated as soft-masked and their
 intervals are recorded in `ref.fa.l2b`. Soft-masking does not change the indexed
