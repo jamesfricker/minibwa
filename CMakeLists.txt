@@ -24,6 +24,7 @@ set(MINIBWA_LIB_SOURCES
 	src/l2bit.c
 	src/options.c
 	src/seed.c
+	src/par.c
 	src/map-algo.c
 	src/lchain.c
 	src/align.c
