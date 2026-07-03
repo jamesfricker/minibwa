@@ -96,7 +96,14 @@ minibwa map -t8 ref.fa read1.fq read2.fq    # map paired-end reads and output SA
 minibwa map -ft8 ref.fa read.fa.gz          # map single-end or long reads; output PAF
 minibwa map --hic ref.fa hic1.fq hic2.fq    # map Hi-C short reads
 minibwa map --meth ref.fa read1.fq read2.fq # map BS-seq reads; requiring "index --meth"
+minibwa map --human ref.fa read1.fq read2.fq # ALT/HLA-aware SAM XA/SA tags
 ```
+With `--human` (or `-j` in the `mem` subcommand), the SAM `XA` and `SA` tags
+become aware of human ALT/HLA contigs: hits on ALT or HLA contigs that compete
+with a primary-assembly hit at the same query locus are reported as alternative
+placements in the `XA` tag instead of split-alignment `SA` tags. This only
+changes tag reporting; it does not otherwise alter read placement.
+
 Note in the default adaptive mode, `-g`/`-w`/`-W`/`-N`/`-m`/`-s` only changes
 the short-read setting; the long-read setting is fixed. This mode is disabled
 with `--adap=no` or when `-x sr` or `-x lr` is specified.
@@ -142,6 +149,12 @@ host, rebuilds there, and optionally times the `bench` subcommand when
 `BENCH_INDEX` points at a remote `.mbw` index. `REMOTE_BASE`, `REMOTE_WORK`,
 `BENCH_ITERATIONS`, and `LOCAL_LOG` customize paths and run size; logs are
 written under `.context/` by default.
+`bench/run-human-benchmark.py` adds a human-focused QA harness. With no inputs it
+generates a small GRCh38-shaped synthetic fixture covering primary, HLA-like,
+alternate, decoy, and low-mappability placements; `make test` runs this CI-sized
+check. The same script can collect metrics for prepared HMF/GIAB runs with
+external FASTA, FASTQ, and BED stratification inputs. See
+[docs/human-benchmark.md](docs/human-benchmark.md).
 
 ## License
 

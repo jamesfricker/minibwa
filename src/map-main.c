@@ -339,6 +339,7 @@ static ko_longopt_t long_options[] = {
 	{ "meth",         ko_no_argument,       310 },
 	{ "hic",          ko_no_argument,       311 },
 	{ "xa",           ko_required_argument, 312 },
+	{ "human",        ko_no_argument,       313 },
 	{ "dbg-aln-seq",  ko_no_argument,       601 },
 	{ "dbg-anchor",   ko_no_argument,       602 },
 	{ "dbg-seed",     ko_no_argument,       603 },
@@ -362,6 +363,7 @@ static int usage_map(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "    -b STR           output a base alignment tag: cs, ds or MD []\n");
 	fprintf(fp, "    --hic            map Hi-C reads; equivalent to option -5P\n");
 	fprintf(fp, "    --meth           map *directional* bisulfite sequencing reads\n");
+	fprintf(fp, "    --human          make XA/SA tags aware of human ALT/HLA contigs\n");
 	fprintf(fp, "  Mapping:\n");
 	fprintf(fp, "    -k INT           min seed length [%d]\n", opt->min_len);
 	fprintf(fp, "    -c NUM           max seed occurrences [%d]\n", opt->max_occ);
@@ -486,6 +488,8 @@ int main_map(int argc, char *argv[])
 			mo.flag |= MB_F_PRIMARY5 | MB_F_NO_PAIRING;
 		} else if (c == 312) { // --xa
 			mo.xa_max = kom_parse_num(o.arg, 0);
+		} else if (c == 313) { // --human
+			mo.flag |= MB_F_HUMAN_ALT;
 		} else if (c == 601) { // --dbg-aln-seq
 			kom_dbg_flag |= MB_DBG_ALN_SEQ;
 		} else if (c == 602) { // --dbg-anchor
@@ -577,7 +581,7 @@ static int usage_mem(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "    -R STR         SAM read group line in a format like '@RG\\tID:foo\\tSM:bar' []\n");
 	fprintf(fp, "    -H STR         if STR starts with @, insert to header; or insert lines in file STR []\n");
 	fprintf(fp, "    -o FILE        output file name [stdout]\n");
-	fprintf(fp, "    *j             treat ALT contigs as part of the primary assembly\n");
+	fprintf(fp, "    -j             make XA/SA tags aware of human ALT/HLA contigs\n");
 	fprintf(fp, "    -5             take the alignment with the smallest query position as primary\n");
 	fprintf(fp, "    *q             don't modify mapQ of supplementary alignments\n");
 	fprintf(fp, "    *K NUM         batch size []\n");
@@ -626,7 +630,8 @@ int main_mem(int argc, char *argv[])
 		// scoring
 		else if (c == 'A' || c == 'B' || c == 'O' || c == 'E' || c == 'L' || c == 'U' || c == 'd' || c == 'x') {}
 		// input/output
-		else if (c == 'p' || c == 'j' || c == 'q' || c == 'K' || c == 'V' || c == 'M' || c == 'u') {}
+		else if (c == 'j') mo.flag |= MB_F_HUMAN_ALT;
+		else if (c == 'p' || c == 'q' || c == 'K' || c == 'V' || c == 'M' || c == 'u') {}
 		else if (c == 'a') mo.out_n = 1000000;
 		else if (c == 'h') mo.xa_max = atoi(o.arg);
 		else if (c == 'z') mo.xa_ratio = atof(o.arg);

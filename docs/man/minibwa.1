@@ -316,6 +316,18 @@ If there are
 .RI >= NUM
 secondary hits of score above 80% of the best hit, output all of them to the XA tag [5]
 .TP
+.B --human
+Make SAM
+.B XA
+and
+.B SA
+tags aware of human ALT/HLA contigs. A hit on an ALT or HLA contig that
+competes with a primary-assembly hit at the same query locus is reported in the
+.B XA
+tag as an alternative placement rather than as a split-alignment
+.B SA
+tag. This only affects tag reporting, not read placement.
+.TP
 .B -y
 Copy FASTA/Q comments to output
 .TP
