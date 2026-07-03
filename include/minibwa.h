@@ -26,6 +26,7 @@
 #define MB_F_HUMAN_ALT        (0x40000LL)   // human ALT/HLA-aware SAM tags
 #define MB_F_HMF_SV_BLACKLIST (0x80000LL)   // downweight split/inversion hits in HMF SV-prep blacklisted regions
 #define MB_F_PROBLEMATIC_MASK (0x100000LL)  // cap/tag hits overlapping known problematic regions
+#define MB_F_HUMAN_TAGS       (0x200000LL)  // write human contig/confidence tags
 
 #define MB_CIGAR_MATCH      0
 #define MB_CIGAR_INS        1

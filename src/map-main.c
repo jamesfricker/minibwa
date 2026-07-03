@@ -351,6 +351,7 @@ static ko_longopt_t long_options[] = {
 	{ "grch38-mask",  ko_optional_argument, 316 },
 	{ "problematic-bed", ko_required_argument, 317 },
 	{ "problematic-mapq-cap", ko_required_argument, 318 },
+	{ "human-tags",   ko_no_argument,       319 },
 	{ "dbg-aln-seq",  ko_no_argument,       601 },
 	{ "dbg-anchor",   ko_no_argument,       602 },
 	{ "dbg-seed",     ko_no_argument,       603 },
@@ -410,6 +411,7 @@ static int usage_map(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "    -u               don't output unmapped reads\n");
 	fprintf(fp, "    --outn=NUM       output up to INT secondary alignments [0]\n");
 	fprintf(fp, "    --xa=NUM         if <=NUM hits with score >%g%% of the best hit, output them to XA [%d]\n", opt->xa_ratio*100.0, opt->xa_max);
+	fprintf(fp, "    --human-tags     output zc/zm/zh human contig and confidence tags\n");
 	fprintf(fp, "    -y               copy FASTA/Q comments to output\n");
 	fprintf(fp, "    -Y               use soft clipping for supplementary alignments\n");
 	fprintf(fp, "    -H STR           if STR starts with @, insert to header; or insert lines in file STR []\n");
@@ -537,6 +539,8 @@ int main_map(int argc, char *argv[])
 			mo.problematic_mapq_cap = atoi(o.arg);
 			if (mo.problematic_mapq_cap < 0) mo.problematic_mapq_cap = 0;
 			if (mo.problematic_mapq_cap > 60) mo.problematic_mapq_cap = 60;
+		} else if (c == 319) { // --human-tags
+			mo.flag |= MB_F_HUMAN_TAGS;
 		} else if (c == 601) { // --dbg-aln-seq
 			kom_dbg_flag |= MB_DBG_ALN_SEQ;
 		} else if (c == 602) { // --dbg-anchor
@@ -607,7 +611,7 @@ int main_map(int argc, char *argv[])
 
 	if (!(mo.flag & MB_F_PAF)) {
 		int ret;
-		ret = mb_fmt_sam_hdr(&hdr, idx->l2b, rg_line, MB_VERSION, argc, argv);
+		ret = mb_fmt_sam_hdr(&hdr, idx->l2b, rg_line, MB_VERSION, argc, argv, mo.flag);
 		if (ret < 0) return 1; // TODO: free idx and out.s
 		if (hdr_ins.l > 0) kom_sprintf_lite(&hdr, "%s", hdr_ins.s);
 	}
@@ -727,7 +731,7 @@ int main_mem(int argc, char *argv[])
 	if (kom_verbose >= 3)
 		fprintf(stderr, "[M::%s::%.3f*%.2f] index loaded\n", __func__, kom_realtime(), kom_percent_cpu());
 
-	ret = mb_fmt_sam_hdr(&hdr, idx->l2b, rg_line, MB_VERSION, argc, argv);
+	ret = mb_fmt_sam_hdr(&hdr, idx->l2b, rg_line, MB_VERSION, argc, argv, mo.flag);
 	if (ret < 0) return 1; // TODO: free idx and out.s
 	if (hdr_ins.l > 0) kom_sprintf_lite(&hdr, "%s", hdr_ins.s);
 	if (hdr_ins.s) free(hdr_ins.s);
