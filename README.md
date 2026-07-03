@@ -132,6 +132,12 @@ host, rebuilds there, and optionally times the `bench` subcommand when
 `BENCH_INDEX` points at a remote `.mbw` index. `REMOTE_BASE`, `REMOTE_WORK`,
 `BENCH_ITERATIONS`, and `LOCAL_LOG` customize paths and run size; logs are
 written under `.context/` by default.
+`bench/run-human-benchmark.py` adds a human-focused QA harness. With no inputs it
+generates a small GRCh38-shaped synthetic fixture covering primary, HLA-like,
+alternate, decoy, and low-mappability placements; `make test` runs this CI-sized
+check. The same script can collect metrics for prepared HMF/GIAB runs with
+external FASTA, FASTQ, and BED stratification inputs. See
+[docs/human-benchmark.md](docs/human-benchmark.md).
 
 ## License
 
