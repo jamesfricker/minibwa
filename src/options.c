@@ -36,6 +36,7 @@ static void mb_opt_reset(mb_opt_t *opt)
 	opt->n_thread = 1;
 	opt->seed = 11;
 	opt->xa_max = 5;
+	opt->hla_policy = MB_HLA_POLICY_OFF;
 	opt->numt_score_diff = opt->a + opt->b;
 	opt->numt_mapq_cap = 10;
 	opt->xa_ratio = 0.8f;

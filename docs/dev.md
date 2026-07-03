@@ -129,6 +129,11 @@ Similarity to minimap2:
    capped and tagged `ng:Z:chrM-nuclear`, and unique chrM reads keep high mapping
    quality. The policy is opt-in, so default behavior is unchanged.
 
+ * With `--human-profile=hmf-grch38`, minibwa enables `MB_HLA_POLICY_MAIN_CONTIG`.
+   `mb_apply_hla_primary` breaks exact score ties between an HLA allele/ALT
+   contig and the main chr6 placement by making chr6 primary. Users who need
+   allele-contig primaries for HLA callers can set `--hla-policy=allele-contig`.
+
  * Minibwa natively aligns directional BS-seq reads.
 
  * With `index --human-resources`, minibwa imports HMF human resource BED/TSV

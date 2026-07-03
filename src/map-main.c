@@ -359,6 +359,7 @@ static ko_longopt_t long_options[] = {
 	{ "mapq-low-cap",     ko_required_argument, 323 },
 	{ "numt",         ko_no_argument,       324 },
 	{ "single-end",   ko_no_argument,       325 },
+	{ "hla-policy",   ko_required_argument, 326 },
 	{ "dbg-aln-seq",  ko_no_argument,       601 },
 	{ "dbg-anchor",   ko_no_argument,       602 },
 	{ "dbg-seed",     ko_no_argument,       603 },
@@ -369,6 +370,23 @@ static ko_longopt_t long_options[] = {
 	{ "help",         ko_no_argument,       902 },
 	{ 0, 0, 0 }
 };
+
+static int parse_hla_policy(const char *s, int32_t *policy)
+{
+	if (strcmp(s, "off") == 0 || strcmp(s, "none") == 0) {
+		*policy = MB_HLA_POLICY_OFF;
+		return 0;
+	}
+	if (strcmp(s, "main-contig") == 0 || strcmp(s, "chr6") == 0 || strcmp(s, "hmf") == 0) {
+		*policy = MB_HLA_POLICY_MAIN_CONTIG;
+		return 0;
+	}
+	if (strcmp(s, "allele-contig") == 0 || strcmp(s, "allele") == 0) {
+		*policy = MB_HLA_POLICY_ALLELE_CONTIG;
+		return 0;
+	}
+	return -1;
+}
 
 static int usage_map(FILE *fp, const mb_opt_t *opt)
 {
@@ -383,6 +401,7 @@ static int usage_map(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "    --hic            map Hi-C reads; equivalent to option -5P\n");
 	fprintf(fp, "    --meth           map *directional* bisulfite sequencing reads\n");
 	fprintf(fp, "    --human          make XA/SA tags aware of human ALT/HLA contigs\n");
+	fprintf(fp, "    --hla-policy=STR HLA primary policy: off, main-contig, allele-contig [profile default]\n");
 	fprintf(fp, "    --hmf-sv-blacklist=FILE\n");
 	fprintf(fp, "                     cap split/inversion MAPQ and tag hits overlapping HMF SV-prep BED intervals\n");
 	fprintf(fp, "    --hmf-sv-blacklist-mapq=INT\n");
@@ -506,6 +525,7 @@ int main_map(int argc, char *argv[])
 	char *fn_out = 0, *rg_line = 0, *fn_sv_blacklist = 0, *fn_mapq_track = 0, *s, *problematic_bed = 0;
 	char *human_profile = 0, *unmap_regions_fn = 0, *profile_unmap_regions_fn = 0;
 	int32_t use_grch38_mask = 0;
+	int32_t hla_policy_set = 0;
 	mb_unmap_regions_t *unmap_regions = 0;
 	ketopt_t o = KETOPT_INIT;
 	kstring_t hdr_ins = {0,0,0}, hdr = {0,0,0};
@@ -619,6 +639,12 @@ int main_map(int argc, char *argv[])
 			mo.flag |= MB_F_NUMT;
 		} else if (c == 325) { // --single-end
 			mo.flag |= MB_F_NO_PAIRING;
+		} else if (c == 326) { // --hla-policy
+			if (parse_hla_policy(o.arg, &mo.hla_policy) < 0) {
+				fprintf(stderr, "[ERROR] unknown --hla-policy '%s' (expected off, main-contig or allele-contig)\n", o.arg);
+				return 1;
+			}
+			hla_policy_set = 1;
 		} else if (c == 601) { // --dbg-aln-seq
 			kom_dbg_flag |= MB_DBG_ALN_SEQ;
 		} else if (c == 602) { // --dbg-anchor
@@ -698,6 +724,8 @@ int main_map(int argc, char *argv[])
 
 	if (human_profile) {
 		if (strcmp(human_profile, "hmf-grch38") == 0) {
+			if (!hla_policy_set)
+				mo.hla_policy = MB_HLA_POLICY_MAIN_CONTIG;
 			if (unmap_regions_fn == 0) {
 				profile_unmap_regions_fn = find_hmf_grch38_unmap_regions(argv[o.ind]);
 				unmap_regions_fn = profile_unmap_regions_fn;
