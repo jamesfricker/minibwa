@@ -23,6 +23,7 @@ set(MINIBWA_LIB_SOURCES
 	src/bwt.c
 	src/l2bit.c
 	src/options.c
+	src/unmap.c
 	src/seed.c
 	src/par.c
 	src/map-algo.c

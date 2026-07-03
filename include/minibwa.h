@@ -40,6 +40,9 @@
 
 #define MB_CIGAR_STR  "MIDNSHP=XB"
 
+struct mb_unmap_regions_s;
+typedef struct mb_unmap_regions_s mb_unmap_regions_t;
+
 typedef struct {
 	uint64_t flag;
 	// seeding options
@@ -90,6 +93,7 @@ typedef struct {
 	int64_t cap_kalloc;
 	int32_t sv_blacklist_mapq; // MAPQ cap for split/inversion hits overlapping an HMF SV-prep blacklist
 	int32_t problematic_mapq_cap;
+	const mb_unmap_regions_t *unmap_regions;
 } mb_opt_t;
 
 struct mb_idx_s;
@@ -118,8 +122,9 @@ typedef struct {
 	int32_t parent, n_sub, subsc;
 	int32_t mlen, blen;
 	int32_t mapq;
+	int32_t unmap_max_depth;
 	uint32_t hash;
-	uint32_t rev:1, proper_pair:1, sam_pri:1, flt:1, inv:1, split:2, split_inv:1, rescued:1, sv_blacklist:1, problematic:1, frac_high:8, seed_ratio:8, par:2, dummy:3;
+	uint32_t rev:1, proper_pair:1, sam_pri:1, flt:1, inv:1, split:2, split_inv:1, rescued:1, sv_blacklist:1, problematic:1, unmap:1, frac_high:8, seed_ratio:8, par:2, dummy:2;
 	mb_extra_t *p;
 } mb_hit_t;
 

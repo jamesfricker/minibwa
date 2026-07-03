@@ -11,8 +11,8 @@
     "30-59": 0,
     "60": 2
   },
-  "minibwa_cpu_seconds": 0.021,
-  "minibwa_real_seconds": 0.015,
+  "minibwa_cpu_seconds": 0.023,
+  "minibwa_real_seconds": 0.016,
   "peak_rss_gb": 0.034,
   "reads": 5,
   "stratifications": {
@@ -22,5 +22,5 @@
     "low-mappability": 1
   },
   "validation_failures": [],
-  "wall_seconds": 0.025192
+  "wall_seconds": 0.028513
 }

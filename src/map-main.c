@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <unistd.h>
 #include <zlib.h>
 #include "kommon.h"
 #include "mbpriv.h"
@@ -352,6 +353,8 @@ static ko_longopt_t long_options[] = {
 	{ "problematic-bed", ko_required_argument, 317 },
 	{ "problematic-mapq-cap", ko_required_argument, 318 },
 	{ "human-tags",   ko_no_argument,       319 },
+	{ "human-profile", ko_required_argument, 320 },
+	{ "unmap-regions", ko_required_argument, 321 },
 	{ "dbg-aln-seq",  ko_no_argument,       601 },
 	{ "dbg-anchor",   ko_no_argument,       602 },
 	{ "dbg-seed",     ko_no_argument,       603 },
@@ -386,6 +389,7 @@ static int usage_map(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "                     cap/tag hits overlapping BED intervals\n");
 	fprintf(fp, "    --problematic-mapq-cap=INT\n");
 	fprintf(fp, "                     MAPQ cap for problematic-region hits [%d]\n", opt->problematic_mapq_cap);
+	fprintf(fp, "    --human-profile=STR  enable a human profile; currently hmf-grch38 []\n");
 	fprintf(fp, "  Mapping:\n");
 	fprintf(fp, "    -k INT           min seed length [%d]\n", opt->min_len);
 	fprintf(fp, "    -c NUM           max seed occurrences [%d]\n", opt->max_occ);
@@ -412,6 +416,7 @@ static int usage_map(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "    --outn=NUM       output up to INT secondary alignments [0]\n");
 	fprintf(fp, "    --xa=NUM         if <=NUM hits with score >%g%% of the best hit, output them to XA [%d]\n", opt->xa_ratio*100.0, opt->xa_max);
 	fprintf(fp, "    --human-tags     output zc/zm/zh human contig and confidence tags\n");
+	fprintf(fp, "    --unmap-regions=FILE annotate hits overlapping HMF unmap_regions TSV []\n");
 	fprintf(fp, "    -y               copy FASTA/Q comments to output\n");
 	fprintf(fp, "    -Y               use soft clipping for supplementary alignments\n");
 	fprintf(fp, "    -H STR           if STR starts with @, insert to header; or insert lines in file STR []\n");
@@ -420,6 +425,54 @@ static int usage_map(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "    --version        print version number\n");
 	fprintf(fp, "    --help           print this help message\n");
 	return fp == stdout? 0 : 1;
+}
+
+static char *try_join_path(const char *dir, const char *name)
+{
+	char *path;
+	if (dir == 0 || dir[0] == 0) return 0;
+	path = kom_calloc(char, strlen(dir) + strlen(name) + 2);
+	sprintf(path, "%s/%s", dir, name);
+	if (access(path, R_OK) == 0) return path;
+	free(path);
+	return 0;
+}
+
+static char *try_env_path(const char *env, const char *name)
+{
+	return try_join_path(getenv(env), name);
+}
+
+static char *try_prefix_dir_path(const char *prefix, const char *name)
+{
+	char *dir, *slash, *path;
+	if (prefix == 0) return 0;
+	dir = kom_strdup(prefix);
+	slash = strrchr(dir, '/');
+	if (slash == 0) {
+		free(dir);
+		return 0;
+	}
+	*slash = 0;
+	path = try_join_path(dir, name);
+	free(dir);
+	return path;
+}
+
+static char *find_hmf_grch38_unmap_regions(const char *idx_prefix)
+{
+	char *path;
+	const char *name = "unmap_regions.38.tsv";
+	if (access("dna_pipeline/common/unmap_regions.38.tsv", R_OK) == 0)
+		return kom_strdup("dna_pipeline/common/unmap_regions.38.tsv");
+	if (access(name, R_OK) == 0)
+		return kom_strdup(name);
+	if ((path = try_env_path("MINIBWA_HMF_RESOURCES", name)) != 0) return path;
+	if ((path = try_env_path("HMF_RESOURCES", name)) != 0) return path;
+	if ((path = try_env_path("HMF_RESOURCE_DIR", name)) != 0) return path;
+	if ((path = try_prefix_dir_path(idx_prefix, "dna_pipeline/common/unmap_regions.38.tsv")) != 0) return path;
+	if ((path = try_prefix_dir_path(idx_prefix, name)) != 0) return path;
+	return 0;
 }
 
 static inline void yes_or_no(mb_opt_t *opt, uint64_t flag, int long_idx, const char *arg, int yes_to_set)
@@ -442,7 +495,9 @@ int main_map(int argc, char *argv[])
 	mb_idx_t *idx;
 	mb_opt_t mo;
 	char *fn_out = 0, *rg_line = 0, *fn_sv_blacklist = 0, *s, *problematic_bed = 0;
+	char *human_profile = 0, *unmap_regions_fn = 0, *profile_unmap_regions_fn = 0;
 	int32_t use_grch38_mask = 0;
+	mb_unmap_regions_t *unmap_regions = 0;
 	ketopt_t o = KETOPT_INIT;
 	kstring_t hdr_ins = {0,0,0}, hdr = {0,0,0};
 
@@ -541,6 +596,10 @@ int main_map(int argc, char *argv[])
 			if (mo.problematic_mapq_cap > 60) mo.problematic_mapq_cap = 60;
 		} else if (c == 319) { // --human-tags
 			mo.flag |= MB_F_HUMAN_TAGS;
+		} else if (c == 320) { // --human-profile
+			human_profile = o.arg;
+		} else if (c == 321) { // --unmap-regions
+			unmap_regions_fn = o.arg;
 		} else if (c == 601) { // --dbg-aln-seq
 			kom_dbg_flag |= MB_DBG_ALN_SEQ;
 		} else if (c == 602) { // --dbg-anchor
@@ -609,6 +668,37 @@ int main_map(int argc, char *argv[])
 	if (kom_verbose >= 3)
 		fprintf(stderr, "[M::%s::%.3f*%.2f] index loaded\n", __func__, kom_realtime(), kom_percent_cpu());
 
+	if (human_profile) {
+		if (strcmp(human_profile, "hmf-grch38") == 0) {
+			if (unmap_regions_fn == 0) {
+				profile_unmap_regions_fn = find_hmf_grch38_unmap_regions(argv[o.ind]);
+				unmap_regions_fn = profile_unmap_regions_fn;
+			}
+			if (unmap_regions_fn == 0) {
+				fprintf(stderr, "[ERROR] --human-profile=hmf-grch38 could not find unmap_regions.38.tsv; use --unmap-regions=FILE or set HMF_RESOURCES.\n");
+				mb_idx_destroy(idx);
+				return 1;
+			}
+		} else {
+			fprintf(stderr, "[ERROR] unknown human profile '%s'\n", human_profile);
+			free(profile_unmap_regions_fn);
+			mb_idx_destroy(idx);
+			return 1;
+		}
+	}
+	if (unmap_regions_fn) {
+		unmap_regions = mb_unmap_regions_load(unmap_regions_fn, idx->l2b);
+		if (unmap_regions == 0) {
+			fprintf(stderr, "[ERROR] failed to load unmap regions '%s'\n", unmap_regions_fn);
+			free(profile_unmap_regions_fn);
+			mb_idx_destroy(idx);
+			return 1;
+		}
+		mo.unmap_regions = unmap_regions;
+		if (kom_verbose >= 3)
+			fprintf(stderr, "[M::%s] loaded %d unmap regions from %s\n", __func__, unmap_regions->n_regions, unmap_regions_fn);
+	}
+
 	if (!(mo.flag & MB_F_PAF)) {
 		int ret;
 		ret = mb_fmt_sam_hdr(&hdr, idx->l2b, rg_line, MB_VERSION, argc, argv, mo.flag);
@@ -619,6 +709,8 @@ int main_map(int argc, char *argv[])
 
 	mb_map_file(&mo, idx, argc - (o.ind + 1), (const char**)&argv[o.ind+1], hdr.s, fn_out);
 	free(hdr.s);
+	free(profile_unmap_regions_fn);
+	mb_unmap_regions_destroy(unmap_regions);
 	mb_idx_destroy(idx);
 	return 0;
 }
