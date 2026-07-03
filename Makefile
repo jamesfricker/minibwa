@@ -131,7 +131,10 @@ ALL_LDLIBS := $(LDLIBS) $(AUTO_LDLIBS)
 
 DEPS := $(LIB_OBJS:.o=.d) $(APP_OBJS:.o=.d) $(MAIN_OBJ:.o=.d) $(MIMALLOC_OBJ:.o=.d)
 
-.PHONY: all clean examples test release-lto pgo pgo-generate pgo-train pgo-use
+OPT_STAMP := $(OBJ_DIR)/.opt-flags
+OPT_FINGERPRINT := $(OPT_CFLAGS) $(OPT_LDFLAGS)
+
+.PHONY: all clean examples test release-lto pgo pgo-generate pgo-train pgo-use FORCE
 
 all: $(PROG)
 
@@ -161,6 +164,11 @@ release-lto:
 	$(MAKE) lto=1 all
 
 pgo:
+	@if [ -z "$(PGO_TRAIN_CMD)" ]; then \
+		echo "PGO_TRAIN_CMD is required, for example:"; \
+		echo "  PGO_TRAIN_CMD='./minibwa map -t1 -P -o /dev/null ref reads.fastq' make pgo"; \
+		exit 2; \
+	fi
 	$(MAKE) pgo-generate
 	$(MAKE) pgo-train
 	$(MAKE) pgo-use
@@ -193,11 +201,17 @@ pgo-use:
 	rm -f $(PROG) $(LIB_TARGET)
 	$(MAKE) pgo=use all
 
-$(OBJ_DIR)/third_party/mimalloc/static.o: third_party/mimalloc/static.c
+$(OPT_STAMP): FORCE
+	@mkdir -p $(dir $@)
+	@if [ ! -f "$@" ] || [ "$$(cat "$@" 2>/dev/null)" != "$(OPT_FINGERPRINT)" ]; then \
+		printf '%s' "$(OPT_FINGERPRINT)" > "$@"; \
+	fi
+
+$(OBJ_DIR)/third_party/mimalloc/static.o: third_party/mimalloc/static.c $(OPT_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) -c $(MIMALLOC_CFLAGS) $(OPT_CFLAGS) -MMD -MP -Ithird_party/mimalloc $< -o $@
 
-$(OBJ_DIR)/%.o: %.c
+$(OBJ_DIR)/%.o: %.c $(OPT_STAMP)
 	@mkdir -p $(dir $@)
 	$(CC) -c $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) -MMD -MP $< -o $@
 
