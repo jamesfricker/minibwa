@@ -122,6 +122,7 @@ minibwa map --hic ref.fa hic1.fq hic2.fq    # map Hi-C short reads
 minibwa map --meth ref.fa read1.fq read2.fq # map BS-seq reads; requiring "index --meth"
 minibwa map --human ref.fa read1.fq read2.fq # ALT/HLA-aware SAM XA/SA tags
 minibwa map --human-tags ref.fa read1.fq read2.fq # add zc/zm/zh human tags
+minibwa map --numt ref.fa read.fq           # cap/tag ambiguous chrM-vs-nuclear hits
 ```
 With `--human` (or `-j` in the `mem` subcommand), the SAM `XA` and `SA` tags
 become aware of human ALT/HLA contigs: hits on ALT or HLA contigs that compete
@@ -187,6 +188,13 @@ inclusive coordinates). Hits overlapping an unmap region are tagged with
 `ur:Z:unmap` and `ud:i:<depth>` (the maximum depth of the overlapping regions)
 in the SAM/PAF output. This only adds annotation tags; it does not change read
 placement or mapping quality.
+
+For human references with both mitochondrial and nuclear contigs, `--numt`
+enables a conservative chrM-vs-nuclear policy. Exact score ties between chrM
+and nuclear hits are made deterministic by preferring the nuclear placement,
+near-tie chrM/nuclear competitors are capped at MAPQ 10, and ambiguous hits are
+annotated with `ng:Z:chrM-nuclear` in SAM or PAF output. Reads unique to chrM
+are not affected.
 
 #### Mapping with legacy bwa-mem CLI
 

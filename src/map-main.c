@@ -357,6 +357,7 @@ static ko_longopt_t long_options[] = {
 	{ "unmap-regions", ko_required_argument, 321 },
 	{ "mapq-mappability", ko_required_argument, 322 },
 	{ "mapq-low-cap",     ko_required_argument, 323 },
+	{ "numt",         ko_no_argument,       324 },
 	{ "dbg-aln-seq",  ko_no_argument,       601 },
 	{ "dbg-anchor",   ko_no_argument,       602 },
 	{ "dbg-seed",     ko_no_argument,       603 },
@@ -392,6 +393,7 @@ static int usage_map(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "    --problematic-mapq-cap=INT\n");
 	fprintf(fp, "                     MAPQ cap for problematic-region hits [%d]\n", opt->problematic_mapq_cap);
 	fprintf(fp, "    --human-profile=STR  enable a human profile; currently hmf-grch38 []\n");
+	fprintf(fp, "    --numt           enable chrM-vs-nuclear NUMT ambiguity policy\n");
 	fprintf(fp, "  Mapping:\n");
 	fprintf(fp, "    -k INT           min seed length [%d]\n", opt->min_len);
 	fprintf(fp, "    -c NUM           max seed occurrences [%d]\n", opt->max_occ);
@@ -612,6 +614,8 @@ int main_map(int argc, char *argv[])
 			mo.mapq_low_cap = atoi(o.arg);
 			if (mo.mapq_low_cap < 0) mo.mapq_low_cap = 0;
 			if (mo.mapq_low_cap > 60) mo.mapq_low_cap = 60;
+		} else if (c == 324) { // --numt
+			mo.flag |= MB_F_NUMT;
 		} else if (c == 601) { // --dbg-aln-seq
 			kom_dbg_flag |= MB_DBG_ALN_SEQ;
 		} else if (c == 602) { // --dbg-anchor

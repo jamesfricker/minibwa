@@ -36,6 +36,8 @@ static void mb_opt_reset(mb_opt_t *opt)
 	opt->n_thread = 1;
 	opt->seed = 11;
 	opt->xa_max = 5;
+	opt->numt_score_diff = opt->a + opt->b;
+	opt->numt_mapq_cap = 10;
 	opt->xa_ratio = 0.8f;
 	opt->max_sw_mat = 100000000;
 	opt->cap_kalloc = 1UL<<28;

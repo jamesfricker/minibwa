@@ -223,6 +223,12 @@ Cap and tag alignments that overlap intervals from a BED file.
 MAPQ cap for problematic-region alignments [10]. Overlapping alignments are
 still output and receive the local SAM/PAF tag
 .BR gm:Z:GRC .
+.TP
+.B --numt
+Enable the chrM-vs-nuclear NUMT ambiguity policy for human references. Exact
+score ties between chrM and nuclear hits prefer the nuclear placement; near-tie
+competitors are capped at MAPQ 10 and annotated with
+.BR ng:Z:chrM-nuclear .
 
 .SS Mapping Options
 .TP 10
@@ -501,6 +507,7 @@ AS	i	Alignment score from dynamic programming
 ms	i	Score of the maximum scoring segment
 md	i	Max score minus secondary max score
 XA	Z	Secondary hits in (ctg,strandPos,CIGAR,NM;)+
+ng	Z	chrM-vs-nuclear NUMT ambiguity
 MC	Z	Mate CIGAR
 MQ	i	Mate mapping quality
 cg	Z	CIGAR (PAF only)

@@ -484,7 +484,9 @@ void mb_pair(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_t n_hit[2], 
 				mb_mark_par_hits(l2b, n_hit[r], hit[r]);
 				mb_set_parent(km, l2b, opt->mask_level, opt->mask_len, n_hit[r], hit[r], sub_diff, 0);
 				mb_par_resolve(l2b, n_hit[r], hit[r], sub_diff);
+				mb_apply_numt_primary(opt, l2b, n_hit[r], hit[r]);
 				mb_set_mapq(km, l2b, qlen[r], n_hit[r], hit[r], opt->min_chain_score, opt->a, mb_is_sr_mode(opt, qlen[r]), opt->max_sr_len, opt->mask_level);
+				mb_apply_numt_mapq(opt, l2b, n_hit[r], hit[r]);
 			}
 			mb_pair_hits(km, opt, l2b, n_hit, hit, pes, &paux); // pair again if new hits rescued
 		}
@@ -498,6 +500,13 @@ void mb_pair(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_t n_hit[2], 
 	}
 	score_se = dp_max_se[0] + dp_max_se[1];
 
+	for (r = 0; r < 2; ++r) {
+		if (mb_apply_numt_primary(opt, l2b, n_hit[r], hit[r]) > 0) {
+			mb_hit_t *sel = &hit[r][paux.i[r]];
+			if (sel->id != sel->parent) // promotion demoted the pair-selected hit; follow it to the new primary
+				paux.i[r] = sel->parent;
+		}
+	}
 	h[0] = &hit[0][paux.i[0]];
 	h[1] = &hit[1][paux.i[1]];
 	if (paux.score >= score_se - opt->pen_unpair * opt->a) {
@@ -540,10 +549,14 @@ void mb_pair(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_t n_hit[2], 
 		mb_cap_mapq_by_mask(l2b, n_hit[1], hit[1], opt->mask_level);
 	}
 end_pairing:
-	mb_mapq_track_apply(opt->mapq_track, n_hit[0], hit[0]);
-	mb_mapq_track_apply(opt->mapq_track, n_hit[1], hit[1]);
-	mb_set_sam_pri(n_hit[0], hit[0], !!(opt->flag & MB_F_PRIMARY5));
-	mb_set_sam_pri(n_hit[1], hit[1], !!(opt->flag & MB_F_PRIMARY5));
+	for (r = 0; r < 2; ++r) {
+		if (mb_apply_numt_primary(opt, l2b, n_hit[r], hit[r]) > 0)
+			mb_set_mapq(km, l2b, qlen[r], n_hit[r], hit[r], opt->min_chain_score, opt->a, mb_is_sr_mode(opt, qlen[r]), opt->max_sr_len, opt->mask_level);
+		mb_set_sam_pri(n_hit[r], hit[r], !!(opt->flag & MB_F_PRIMARY5));
+		mb_apply_numt_mapq(opt, l2b, n_hit[r], hit[r]);
+	}
 	mb_apply_unmap_regions(opt->unmap_regions, n_hit[0], hit[0]);
 	mb_apply_unmap_regions(opt->unmap_regions, n_hit[1], hit[1]);
+	mb_mapq_track_apply(opt->mapq_track, n_hit[0], hit[0]);
+	mb_mapq_track_apply(opt->mapq_track, n_hit[1], hit[1]);
 }

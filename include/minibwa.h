@@ -27,6 +27,7 @@
 #define MB_F_HMF_SV_BLACKLIST (0x80000LL)   // downweight split/inversion hits in HMF SV-prep blacklisted regions
 #define MB_F_PROBLEMATIC_MASK (0x100000LL)  // cap/tag hits overlapping known problematic regions
 #define MB_F_HUMAN_TAGS       (0x200000LL)  // write human contig/confidence tags
+#define MB_F_NUMT             (0x400000LL)  // chrM-vs-nuclear ambiguity policy
 
 #define MB_CIGAR_MATCH      0
 #define MB_CIGAR_INS        1
@@ -86,6 +87,8 @@ typedef struct {
 	int32_t out_n;    // max number of secondary alignments to output
 	int32_t seed;
 	int32_t xa_max;
+	int32_t numt_score_diff; // max chrM-vs-nuclear score gap treated as ambiguous (MB_F_NUMT)
+	int32_t numt_mapq_cap;   // mapQ cap for ambiguous chrM-vs-nuclear hits (MB_F_NUMT)
 	float xa_ratio;
 	int64_t mb_size;  // mini-batch size
 	int64_t max_mb_size;
@@ -128,7 +131,7 @@ typedef struct {
 	int32_t mapq;
 	int32_t unmap_max_depth;
 	uint32_t hash;
-	uint32_t rev:1, proper_pair:1, sam_pri:1, flt:1, inv:1, split:2, split_inv:1, rescued:1, sv_blacklist:1, problematic:1, unmap:1, frac_high:8, seed_ratio:8, par:2, dummy:2;
+	uint32_t rev:1, proper_pair:1, sam_pri:1, flt:1, inv:1, split:2, split_inv:1, rescued:1, sv_blacklist:1, problematic:1, unmap:1, numt_ambig:1, frac_high:8, seed_ratio:8, par:2, dummy:1;
 	mb_extra_t *p;
 } mb_hit_t;
 
