@@ -127,8 +127,9 @@ minibwa map --numt ref.fa read.fq           # cap/tag ambiguous chrM-vs-nuclear 
 With `--human` (or `-j` in the `mem` subcommand), the SAM `XA` and `SA` tags
 become aware of human ALT/HLA contigs: hits on ALT or HLA contigs that compete
 with a primary-assembly hit at the same query locus are reported as alternative
-placements in the `XA` tag instead of split-alignment `SA` tags. This only
-changes tag reporting; it does not otherwise alter read placement.
+placements in the `XA` tag instead of split-alignment `SA` tags. Exact-score
+ties are also resolved toward primary human coordinates before ALT, HLA, decoy,
+random, unplaced, and viral/phix contigs.
 
 With `--human-tags`, minibwa adds optional human annotations to each mapped SAM
 and PAF record: `zc:Z` gives the contig class inferred from the contig name
