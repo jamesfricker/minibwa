@@ -98,7 +98,7 @@ static inline void write_tags(kstring_t *s, const mb_hit_t *p)
 static inline void write_numt_tags(kstring_t *s, const mb_hit_t *p)
 {
 	if (p->numt_ambig)
-		kom_sprintf_lite(s, "\tnM:Z:chrM-nuclear");
+		kom_sprintf_lite(s, "\tng:Z:chrM-nuclear");
 }
 
 void mb_fmt_paf(kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, const mb_hit_t *p, uint64_t opt_flag, int n_seg, int seg_idx)

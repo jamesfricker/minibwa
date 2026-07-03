@@ -193,7 +193,7 @@ For human references with both mitochondrial and nuclear contigs, `--numt`
 enables a conservative chrM-vs-nuclear policy. Exact score ties between chrM
 and nuclear hits are made deterministic by preferring the nuclear placement,
 near-tie chrM/nuclear competitors are capped at MAPQ 10, and ambiguous hits are
-annotated with `nM:Z:chrM-nuclear` in SAM or PAF output. Reads unique to chrM
+annotated with `ng:Z:chrM-nuclear` in SAM or PAF output. Reads unique to chrM
 are not affected.
 
 #### Mapping with legacy bwa-mem CLI
