@@ -208,7 +208,7 @@ static int32_t mb_mapq_track_cap(const mb_mapq_track_t *track, int64_t tid, int6
 		if (v->a[mid].st < en) lo = mid + 1;
 		else hi = mid;
 	}
-	while (--lo >= 0 && v->a[lo].en > st) {
+	while (--lo >= 0) {
 		if (v->a[lo].en > st && v->a[lo].cap < cap) cap = v->a[lo].cap;
 	}
 	return cap;
