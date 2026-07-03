@@ -500,6 +500,13 @@ void mb_pair(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_t n_hit[2], 
 	}
 	score_se = dp_max_se[0] + dp_max_se[1];
 
+	for (r = 0; r < 2; ++r) {
+		if (mb_apply_numt_primary(opt, l2b, n_hit[r], hit[r]) > 0) {
+			mb_hit_t *sel = &hit[r][paux.i[r]];
+			if (sel->id != sel->parent) // promotion demoted the pair-selected hit; follow it to the new primary
+				paux.i[r] = sel->parent;
+		}
+	}
 	h[0] = &hit[0][paux.i[0]];
 	h[1] = &hit[1][paux.i[1]];
 	if (paux.score >= score_se - opt->pen_unpair * opt->a) {
