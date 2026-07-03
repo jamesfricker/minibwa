@@ -776,10 +776,10 @@ static void mb_promote_numt_hit(int32_t n, mb_hit_t *r, int32_t old_i, int32_t n
 		r[old_i].p->dp_max2 = r[old_i].p->dp_max2 > new_dp_sc? r[old_i].p->dp_max2 : new_dp_sc;
 }
 
-void mb_apply_numt_primary(const mb_opt_t *opt, const l2b_t *l2b, int32_t n, mb_hit_t *r)
+int mb_apply_numt_primary(const mb_opt_t *opt, const l2b_t *l2b, int32_t n, mb_hit_t *r)
 {
-	int32_t i, j;
-	if (!(opt->flag & MB_F_NUMT) || n <= 1) return;
+	int32_t i, j, n_promoted = 0;
+	if (!(opt->flag & MB_F_NUMT) || n <= 1) return 0;
 	for (i = 0; i < n; ++i) {
 		int i_mt;
 		if (r[i].tid < 0 || (uint64_t)r[i].tid >= l2b->n_ctg) continue;
@@ -794,10 +794,12 @@ void mb_apply_numt_primary(const mb_opt_t *opt, const l2b_t *l2b, int32_t n, mb_
 			diff = mb_hit_numt_score(&r[i]) - mb_hit_numt_score(&r[j]);
 			if (diff == 0) {
 				mb_promote_numt_hit(n, r, i, j);
+				++n_promoted;
 				break;
 			}
 		}
 	}
+	return n_promoted;
 }
 
 void mb_apply_numt_mapq(const mb_opt_t *opt, const l2b_t *l2b, int32_t n, mb_hit_t *r)
