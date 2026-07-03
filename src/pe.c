@@ -481,7 +481,9 @@ void mb_pair(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_t n_hit[2], 
 						h->n_sub = h->subsc = h->p->dp_max2 = 0;
 				}
 				mb_hit_sort(km, &n_hit[r], hit[r]);
-				mb_set_parent(km, opt->mask_level, opt->mask_len, n_hit[r], hit[r], sub_diff, 0);
+				mb_mark_par_hits(l2b, n_hit[r], hit[r]);
+				mb_set_parent(km, l2b, opt->mask_level, opt->mask_len, n_hit[r], hit[r], sub_diff, 0);
+				mb_par_resolve(l2b, n_hit[r], hit[r], sub_diff);
 				mb_set_mapq(km, l2b, qlen[r], n_hit[r], hit[r], opt->min_chain_score, opt->a, mb_is_sr_mode(opt, qlen[r]), opt->max_sr_len, opt->mask_level);
 			}
 			mb_pair_hits(km, opt, l2b, n_hit, hit, pes, &paux); // pair again if new hits rescued

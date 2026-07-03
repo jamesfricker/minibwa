@@ -40,6 +40,7 @@ static void mb_opt_reset(mb_opt_t *opt)
 	opt->max_sw_mat = 100000000;
 	opt->cap_kalloc = 1UL<<28;
 	opt->max_mb_size = 1000000000;
+	opt->sv_blacklist_mapq = 10;
 #ifndef HAVE_KALLOC
 	opt->flag |= MB_F_NO_KALLOC;
 #endif

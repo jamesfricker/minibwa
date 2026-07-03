@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 #include "mbpriv.h"
 #include "kalloc.h"
@@ -26,6 +27,7 @@ mb_idx_t *mb_idx_load(const char *prefix, int32_t is_meth)
 	strcat(strcpy(buf, prefix), ".l2b");
 	l2b = l2b_load(buf);
 	if (l2b == 0) goto end_idx_load;
+	mb_par_init(l2b);
 	if (is_meth) strcat(strcpy(buf, prefix), ".meth.mbw");
 	else strcat(strcpy(buf, prefix), ".mbw");
 	bwt = mb_bwt_load(buf);
@@ -44,6 +46,7 @@ end_idx_load:
 void mb_idx_destroy(mb_idx_t *idx)
 {
 	if (idx == 0) return;
+	mb_idx_clear_sv_blacklist(idx);
 	mb_bwt_destroy(idx->bwt);
 	l2b_destroy(idx->l2b);
 	free(idx);
@@ -266,7 +269,7 @@ void mb_sync_hits(void *km, int n_regs, mb_hit_t *regs)
  * Set primary and secondary hits *
  **********************************/
 
-static int update_sub(mb_hit_t *ri, mb_hit_t *rp, float mask_level, int mask_len, int sub_diff, int uncov_len)
+static int update_sub(const l2b_t *l2b, mb_hit_t *ri, mb_hit_t *rp, float mask_level, int mask_len, int sub_diff, int uncov_len)
 {
 	int si = ri->qs, ei = ri->qe, sj = rp->qs, ej = rp->qe, min, max, ol;
 	if (ej <= si || sj >= ei) return 0;
@@ -276,6 +279,7 @@ static int update_sub(mb_hit_t *ri, mb_hit_t *rp, float mask_level, int mask_len
 	if ((double)ol / min - (double)uncov_len / max > mask_level && uncov_len <= mask_len) {
 		int cnt_sub = 0, sci = ri->score;
 		ri->parent = rp->parent;
+		if (mb_par_equiv(l2b, ri, rp)) return 1;
 		rp->subsc = rp->subsc > sci? rp->subsc : sci;
 		if (rp->p && ri->p && (rp->tid != ri->tid || rp->ts != ri->ts || rp->te != ri->te || ol != min)) { // the last condition excludes identical hits after DP
 			sci = ri->p->dp_max;
@@ -287,7 +291,7 @@ static int update_sub(mb_hit_t *ri, mb_hit_t *rp, float mask_level, int mask_len
 	} else return 0;
 }
 
-void mb_set_parent(void *km, float mask_level, int mask_len, int n, mb_hit_t *r, int sub_diff, int hard_mask_level)
+void mb_set_parent(void *km, const l2b_t *l2b, float mask_level, int mask_len, int n, mb_hit_t *r, int sub_diff, int hard_mask_level)
 { // TODO: re-examine the logic for variable-length seeds
 	int i, j, k, *w;
 	uint64_t *cov;
@@ -327,9 +331,9 @@ skip_uncov:
 			if (max_ol < ol) max_ol = ol, max_j = j;
 		}
 		if (max_j >= 0) {
-			n_par += update_sub(ri, &r[w[max_j]], mask_level, mask_len, sub_diff, uncov_len);
+			n_par += update_sub(l2b, ri, &r[w[max_j]], mask_level, mask_len, sub_diff, uncov_len);
 			for (j = 0; j < k && n_par == 0; ++j) // if no parent found on the longest overlap, try more
-				n_par += update_sub(ri, &r[w[j]], mask_level, mask_len, sub_diff, uncov_len);
+				n_par += update_sub(l2b, ri, &r[w[j]], mask_level, mask_len, sub_diff, uncov_len);
 		}
 add_primary:
 		if (n_par == 0) w[k++] = i, ri->parent = i, ri->n_sub = 0;
@@ -633,13 +637,17 @@ static mb_hit_t *mb_map_sai_core(const mb_opt_t *opt, const mb_idx_t *idx, int64
 	// chain ordering
 	hit = mb_gen_hit(b->km, hash, qlen, idx->l2b, n_hit, w, a);
 	kfree(b->km, w);
-	mb_set_parent(b->km, opt->mask_level, opt->mask_len, n_hit, hit, sub_diff, 0);
+	mb_mark_par_hits(idx->l2b, n_hit, hit);
+	mb_set_parent(b->km, idx->l2b, opt->mask_level, opt->mask_len, n_hit, hit, sub_diff, 0);
+	mb_par_resolve(idx->l2b, n_hit, hit, sub_diff);
 	mb_select_sub(b->km, opt->pri_ratio, opt->min_len * 2, opt->best_n, &n_hit, hit);
 
 	// base alignment
 	if (!(opt->flag & MB_F_NO_ALN)) {
 		hit = mb_align_skeleton(b->km, opt, idx, qlen, seq, mt, &n_hit, hit, a);
-		mb_set_parent(b->km, opt->mask_level, opt->mask_len, n_hit, hit, sub_diff, 0);
+		mb_mark_par_hits(idx->l2b, n_hit, hit);
+		mb_set_parent(b->km, idx->l2b, opt->mask_level, opt->mask_len, n_hit, hit, sub_diff, 0);
+		mb_par_resolve(idx->l2b, n_hit, hit, sub_diff);
 		mb_select_sub(b->km, opt->pri_ratio, opt->min_len * 2, opt->best_n, &n_hit, hit);
 		mb_set_sam_pri(n_hit, hit, !!(opt->flag & MB_F_PRIMARY5));
 	}
@@ -649,6 +657,7 @@ static mb_hit_t *mb_map_sai_core(const mb_opt_t *opt, const mb_idx_t *idx, int64
 		if (hit[i].seed_ratio == 0) hit[i].seed_ratio = 1;
 	}
 	mb_set_mapq(b->km, idx->l2b, qlen, n_hit, hit, opt->min_chain_score, opt->a, is_sr, opt->max_sr_len, opt->mask_level);
+	mb_apply_sv_blacklist(idx, opt, n_hit, hit);
 
 	// clean up
 	kfree(b->km, a);
@@ -767,6 +776,8 @@ mb_hit_t **mb_map_batch(const mb_opt_t *opt, const mb_idx_t *idx, int32_t n_seq,
 			int32_t len2[2] = { qlen[i], qlen[i+1] };
 			char *seq2[2] = { (char*)seq[i], (char*)seq[i+1] };
 			mb_pair(km, opt, idx->l2b, &n_hit[i], &hit[i], pes, len2, seq2);
+			mb_apply_sv_blacklist(idx, opt, n_hit[i], hit[i]);
+			mb_apply_sv_blacklist(idx, opt, n_hit[i+1], hit[i+1]);
 		}
 	}
 

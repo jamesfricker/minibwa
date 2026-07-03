@@ -24,10 +24,12 @@ set(MINIBWA_LIB_SOURCES
 	src/l2bit.c
 	src/options.c
 	src/seed.c
+	src/par.c
 	src/map-algo.c
 	src/lchain.c
 	src/align.c
 	src/pe.c
+	src/sv_blacklist.c
 	src/cs.c
 	src/format.c
 	src/ksw2_extz2_sse.c

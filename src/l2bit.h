@@ -22,6 +22,7 @@ typedef struct {
 	uint64_t tot_len;
 	uint64_t n_ctg, m_ctg;
 	l2b_ctg_t *ctg;
+	int32_t par_asm, par_x_tid, par_y_tid;
 	uint64_t n_pac, m_pac;
 	uint64_t n_ambi, m_ambi;
 	uint64_t n_mask, m_mask;

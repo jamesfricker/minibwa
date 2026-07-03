@@ -17,10 +17,17 @@
 #define MB_SEED_LONG_JOIN  0x1
 #define MB_SEED_IGNORE     0x2
 
+typedef struct {
+	int64_t st, en;
+} mb_region_t;
+
 struct mb_idx_s {
 	int32_t is_meth;
 	l2b_t *l2b;
 	mb_bwt_t *bwt;
+	int64_t n_sv_blacklist;
+	int32_t *sv_bl_n, *sv_bl_m;
+	mb_region_t **sv_bl;
 };
 
 typedef struct {
@@ -67,7 +74,7 @@ void *mb_tbuf_km(mb_tbuf_t *b);
 int32_t mb_cal_mblen(int32_t n, const mb_anchor_t *a, int32_t *blen_);
 mb_hit_t *mb_gen_hit(void *km, uint32_t hash, int qlen, const l2b_t *l2b, int n_u, uint64_t *u, mb_anchor_t *a);
 void mb_sync_high_cov(int32_t n, mb_hit_t *h);
-void mb_set_parent(void *km, float mask_level, int mask_len, int n, mb_hit_t *r, int sub_diff, int hard_mask_level);
+void mb_set_parent(void *km, const l2b_t *l2b, float mask_level, int mask_len, int n, mb_hit_t *r, int sub_diff, int hard_mask_level);
 void mb_set_sam_pri(int32_t n, mb_hit_t *r, int32_t is_primary5);
 void mb_hit_sort(void *km, int *n_regs, mb_hit_t *r);
 void mb_sync_hits(void *km, int n_regs, mb_hit_t *regs);
@@ -75,8 +82,14 @@ void mb_select_sub(void *km, float pri_ratio, int min_diff, int best_n, int *n_,
 void mb_filter_hits(const mb_opt_t *opt, int qlen, int *n_regs, mb_hit_t *regs);
 int mb_squeeze_a(void *km, int n_regs, mb_hit_t *regs, mb_anchor_t *a);
 void mb_split_hit(mb_hit_t *r, mb_hit_t *r2, int n, int qlen, mb_anchor_t *a, const l2b_t *l2b);
+void mb_par_init(l2b_t *l2b);
+void mb_mark_par_hits(const l2b_t *l2b, int32_t n, mb_hit_t *h);
+int mb_par_equiv(const l2b_t *l2b, const mb_hit_t *a, const mb_hit_t *b);
+void mb_par_resolve(const l2b_t *l2b, int32_t n, mb_hit_t *h, int32_t sub_diff);
+const char *mb_par_name(int32_t par);
 void mb_set_mapq(void *km, const l2b_t *l2b, int32_t qlen, int n_regs, mb_hit_t *regs, int min_chain_sc, int match_sc, int is_sr, int max_sr_len, float mask_level);
 void mb_cap_mapq_by_mask(const l2b_t *l2b, int n_regs, mb_hit_t *regs, float mask_level);
+void mb_apply_sv_blacklist(const mb_idx_t *idx, const mb_opt_t *opt, int n_regs, mb_hit_t *regs);
 
 mb_hit_t *mb_map_sai(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, const char *seq, l2b_meth_t mt, mb_sai_v *u, int32_t *n_hit_, mb_tbuf_t *b, const char *qname);
 mb_hit_t *mb_map_sai4(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, const uint8_t *seq, l2b_meth_t mt, mb_sai_v *u, int32_t *n_hit_, mb_tbuf_t *b, const char *qname);
