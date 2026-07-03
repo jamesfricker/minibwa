@@ -839,6 +839,7 @@ static mb_hit_t *mb_map_sai_core(const mb_opt_t *opt, const mb_idx_t *idx, int64
 	mb_apply_sv_blacklist(idx, opt, n_hit, hit);
 	if (opt->flag & MB_F_PROBLEMATIC_MASK)
 		mb_apply_problematic_mask(idx, n_hit, hit, opt->problematic_mapq_cap);
+	mb_apply_unmap_regions(opt->unmap_regions, n_hit, hit);
 
 	// clean up
 	kfree(b->km, a);
