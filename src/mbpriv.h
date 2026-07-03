@@ -52,7 +52,7 @@ typedef struct { uint64_t x, y; } mb128_t;
 void radix_sort_mb128x(mb128_t *beg, mb128_t *end);
 
 typedef struct {
-	int64_t st, en;
+	int64_t st, en, max_en;
 	int32_t max_depth;
 } mb_unmap_intv_t;
 

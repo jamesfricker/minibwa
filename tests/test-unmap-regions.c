@@ -38,7 +38,7 @@ int main(int argc, char **argv)
 
 	r = mb_unmap_regions_load(argv[1], &l2b);
 	assert(r);
-	assert(r->n_regions == 2);
+	assert(r->n_regions == 4);
 
 	assert(depth(r, 0, 99, 100) == 0);
 	assert(depth(r, 0, 100, 101) == 40);
@@ -46,6 +46,14 @@ int main(int argc, char **argv)
 	assert(depth(r, 0, 200, 201) == 0);
 	assert(depth(r, 1, 9, 10) == 7);
 	assert(depth(r, 1, 20, 21) == 0);
+
+	assert(depth(r, 0, 500, 501) == 9);
+	assert(depth(r, 0, 301, 302) == 9);
+	assert(depth(r, 0, 302, 303) == 9);
+	assert(depth(r, 0, 300, 301) == 9);
+	assert(depth(r, 0, 799, 800) == 9);
+	assert(depth(r, 0, 299, 300) == 0);
+	assert(depth(r, 0, 800, 801) == 0);
 
 	h[0] = hit(0, 100, 105);
 	h[1] = hit(0, 200, 205);
