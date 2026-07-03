@@ -724,6 +724,104 @@ void mb_set_mapq(void *km, const l2b_t *l2b, int32_t qlen, int n_regs, mb_hit_t 
 	mb_set_inv_mapq(km, n_regs, regs);
 }
 
+/**********************
+ * chrM/NUMT policy   *
+ **********************/
+
+static int mb_is_chrm_name(const char *s)
+{
+	char b[16];
+	int i, l;
+	if (s == 0) return 0;
+	for (i = 0; s[i] && i < (int)sizeof(b) - 1; ++i) {
+		char c = s[i];
+		b[i] = c >= 'A' && c <= 'Z'? c + ('a' - 'A') : c;
+	}
+	b[i] = 0, l = i;
+	if (strcmp(b, "m") == 0 || strcmp(b, "mt") == 0 || strcmp(b, "chrm") == 0 || strcmp(b, "chrmt") == 0) return 1;
+	if (strncmp(b, "nc_012920", 9) == 0 && (l == 9 || b[9] == '.')) return 1;
+	return 0;
+}
+
+static inline int mb_hit_numt_score(const mb_hit_t *r)
+{
+	return r->p? r->p->dp_max : r->score;
+}
+
+static int mb_hit_query_similar(const mb_hit_t *a, const mb_hit_t *b)
+{
+	int ol, min;
+	if (a->qe <= b->qs || b->qe <= a->qs) return 0;
+	ol = (a->qe < b->qe? a->qe : b->qe) - (a->qs > b->qs? a->qs : b->qs);
+	min = a->qe - a->qs < b->qe - b->qs? a->qe - a->qs : b->qe - b->qs;
+	return min > 0 && ol * 10 >= min * 8;
+}
+
+static void mb_promote_numt_hit(int32_t n, mb_hit_t *r, int32_t old_i, int32_t new_i)
+{
+	int32_t i, old_id = r[old_i].id, new_id = r[new_i].id;
+	int32_t old_dp_sc = mb_hit_numt_score(&r[old_i]), new_dp_sc = mb_hit_numt_score(&r[new_i]);
+	if (old_i == new_i || old_id == new_id) return;
+	r[new_i].parent = new_id;
+	r[new_i].n_sub = r[old_i].n_sub + 1;
+	r[new_i].subsc = r[new_i].subsc > r[old_i].score? r[new_i].subsc : r[old_i].score;
+	if (r[new_i].p)
+		r[new_i].p->dp_max2 = r[new_i].p->dp_max2 > old_dp_sc? r[new_i].p->dp_max2 : old_dp_sc;
+	for (i = 0; i < n; ++i) {
+		if (i == new_i) continue;
+		if (r[i].parent == old_id || i == old_i) r[i].parent = new_id;
+	}
+	r[old_i].subsc = r[old_i].subsc > r[new_i].score? r[old_i].subsc : r[new_i].score;
+	if (r[old_i].p)
+		r[old_i].p->dp_max2 = r[old_i].p->dp_max2 > new_dp_sc? r[old_i].p->dp_max2 : new_dp_sc;
+}
+
+void mb_apply_numt_primary(const mb_opt_t *opt, const l2b_t *l2b, int32_t n, mb_hit_t *r)
+{
+	int32_t i, j;
+	if (!(opt->flag & MB_F_NUMT) || n <= 1) return;
+	for (i = 0; i < n; ++i) {
+		int i_mt = mb_is_chrm_name(l2b->ctg[r[i].tid].name);
+		if (!i_mt || r[i].parent != r[i].id) continue;
+		for (j = 0; j < n; ++j) {
+			int32_t diff;
+			if (i == j || r[j].parent != r[i].id) continue;
+			if (mb_is_chrm_name(l2b->ctg[r[j].tid].name)) continue;
+			if (!mb_hit_query_similar(&r[i], &r[j])) continue;
+			diff = mb_hit_numt_score(&r[i]) - mb_hit_numt_score(&r[j]);
+			if (diff == 0) {
+				mb_promote_numt_hit(n, r, i, j);
+				break;
+			}
+		}
+	}
+}
+
+void mb_apply_numt_mapq(const mb_opt_t *opt, const l2b_t *l2b, int32_t n, mb_hit_t *r)
+{
+	int32_t i, j, diff_limit, cap;
+	if (!(opt->flag & MB_F_NUMT) || n <= 1) return;
+	diff_limit = opt->numt_score_diff >= 0? opt->numt_score_diff : 0;
+	cap = opt->numt_mapq_cap >= 0? opt->numt_mapq_cap : 0;
+	for (i = 0; i < n; ++i) r[i].numt_ambig = 0;
+	for (i = 0; i < n; ++i) {
+		int i_mt = mb_is_chrm_name(l2b->ctg[r[i].tid].name);
+		for (j = i + 1; j < n; ++j) {
+			int32_t si, sj, diff;
+			if (i_mt == mb_is_chrm_name(l2b->ctg[r[j].tid].name)) continue;
+			if (!mb_hit_query_similar(&r[i], &r[j])) continue;
+			si = mb_hit_numt_score(&r[i]);
+			sj = mb_hit_numt_score(&r[j]);
+			diff = si > sj? si - sj : sj - si;
+			if (diff <= diff_limit) {
+				r[i].numt_ambig = r[j].numt_ambig = 1;
+				if (r[i].parent == r[i].id && r[i].mapq > cap) r[i].mapq = cap;
+				if (r[j].parent == r[j].id && r[j].mapq > cap) r[j].mapq = cap;
+			}
+		}
+	}
+}
+
 /************************
  * Core mapping routine *
  ************************/
@@ -830,14 +928,16 @@ static mb_hit_t *mb_map_sai_core(const mb_opt_t *opt, const mb_idx_t *idx, int64
 		mb_set_parent(b->km, idx->l2b, opt->mask_level, opt->mask_len, n_hit, hit, sub_diff, 0);
 		mb_par_resolve(idx->l2b, n_hit, hit, sub_diff);
 		mb_select_sub(b->km, opt->pri_ratio, opt->min_len * 2, opt->best_n, &n_hit, hit);
-		mb_set_sam_pri(n_hit, hit, !!(opt->flag & MB_F_PRIMARY5));
 	}
+	mb_apply_numt_primary(opt, idx->l2b, n_hit, hit);
+	mb_set_sam_pri(n_hit, hit, !!(opt->flag & MB_F_PRIMARY5));
 	for (i = 0; i < n_hit; ++i) {
 		hit[i].frac_high = (int32_t)(255. * hi_cov / qlen);
 		hit[i].seed_ratio = (int32_t)(255. * seed_ratio + .499);
 		if (hit[i].seed_ratio == 0) hit[i].seed_ratio = 1;
 	}
 	mb_set_mapq(b->km, idx->l2b, qlen, n_hit, hit, opt->min_chain_score, opt->a, is_sr, opt->max_sr_len, opt->mask_level);
+	mb_apply_numt_mapq(opt, idx->l2b, n_hit, hit);
 	mb_apply_sv_blacklist(idx, opt, n_hit, hit);
 	if (opt->flag & MB_F_PROBLEMATIC_MASK)
 		mb_apply_problematic_mask(idx, n_hit, hit, opt->problematic_mapq_cap);

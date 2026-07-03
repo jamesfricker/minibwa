@@ -95,6 +95,12 @@ static inline void write_tags(kstring_t *s, const mb_hit_t *p)
 	kom_sprintf_lite(s, "\tNM:i:%d\tAS:i:%d\tms:i:%d\tmd:i:%d", nm, p->p->dp_score, p->p->dp_max0, p->p->dp_max - p->p->dp_max2);
 }
 
+static inline void write_numt_tags(kstring_t *s, const mb_hit_t *p)
+{
+	if (p->numt_ambig)
+		kom_sprintf_lite(s, "\tnM:Z:chrM-nuclear");
+}
+
 void mb_fmt_paf(kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, const mb_hit_t *p, uint64_t opt_flag, int n_seg, int seg_idx)
 {
 	kom_sprintf_lite(s, "%s", t->name);
@@ -125,6 +131,7 @@ void mb_fmt_paf(kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, const mb_hi
 		}
 		if (p->p->cs) kom_sprintf_lite(s, "\t%s", (char*)&p->p->cigar[p->p->n_cigar]);
 	}
+	write_numt_tags(s, p);
 	if ((opt_flag & MB_F_COPY_COMMENT) && t->comment)
 		kom_sprintf_lite(s, "\t%s", t->comment);
 	kom_sprintf_lite(s, "\n");
@@ -475,6 +482,7 @@ void mb_fmt_sam(void *km, kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, i
 		if (opt->flag & MB_F_HUMAN_TAGS) write_human_tags(s, l2b, r);
 		if (r->unmap)
 			kom_sprintf_lite(s, "\tur:Z:unmap\tud:i:%d", r->unmap_max_depth);
+		write_numt_tags(s, r);
 		// MC:Z mate CIGAR and MQ:i mate MAPQ; r_next is the mate's primary (see above).
 		if (n_seg > 1 && r_next && r_next->p && r_next->p->n_cigar > 0 && mate_qlen > 0) {
 			kom_sprintf_lite(s, "\tMC:Z:");
