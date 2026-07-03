@@ -110,6 +110,7 @@ void mb_set_mapq(void *km, const l2b_t *l2b, int32_t qlen, int n_regs, mb_hit_t 
 void mb_cap_mapq_by_mask(const l2b_t *l2b, int n_regs, mb_hit_t *regs, float mask_level);
 void mb_apply_sv_blacklist(const mb_idx_t *idx, const mb_opt_t *opt, int n_regs, mb_hit_t *regs);
 void mb_apply_problematic_mask(const mb_idx_t *idx, int32_t n_regs, mb_hit_t *regs, int32_t mapq_cap);
+void mb_mapq_track_apply(const mb_mapq_track_t *track, int32_t n_regs, mb_hit_t *regs);
 
 // defined in unmap.c
 mb_unmap_regions_t *mb_unmap_regions_load(const char *fn, const l2b_t *l2b);

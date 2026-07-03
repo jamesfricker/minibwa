@@ -260,6 +260,15 @@ secondary alignments [101]
 .B --chain-only
 Perform chaining only without base alignment
 .TP
+.BI --mapq-mappability \ FILE
+Load a BED or bedGraph mappability track once and cap primary MAPQ for
+alignments overlapping low-mappability intervals. Numeric fourth-column scores
+in the range 0..1 are treated as mappability fractions and converted to a
+0..60 MAPQ cap.
+.TP
+.BI --mapq-low-cap \ INT
+MAPQ cap for unscored three-column low-mappability BED rows [20].
+.TP
 .BR --long = yes | no
 Whether to use the long-read heuristic for all reads
 .TP

@@ -30,6 +30,7 @@ LIB_SRCS := \
 	src/align.c \
 	src/pe.c \
 	src/sv_blacklist.c \
+	src/mappability.c \
 	src/cs.c \
 	src/format.c \
 	src/human_resources.c \

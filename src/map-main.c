@@ -355,6 +355,8 @@ static ko_longopt_t long_options[] = {
 	{ "human-tags",   ko_no_argument,       319 },
 	{ "human-profile", ko_required_argument, 320 },
 	{ "unmap-regions", ko_required_argument, 321 },
+	{ "mapq-mappability", ko_required_argument, 322 },
+	{ "mapq-low-cap",     ko_required_argument, 323 },
 	{ "dbg-aln-seq",  ko_no_argument,       601 },
 	{ "dbg-anchor",   ko_no_argument,       602 },
 	{ "dbg-seed",     ko_no_argument,       603 },
@@ -396,10 +398,14 @@ static int usage_map(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "    -g NUM           max gap size, controlling extension and chain breaking [%d]\n", opt->max_gap);
 	fprintf(fp, "    -w NUM           bandwidth [%d]\n", opt->bw);
 	fprintf(fp, "    -W NUM           long bandwidth (for long reads or the adaptive mode) [%d]\n", opt->bw_long);
-    fprintf(fp, "    -m INT           min chaining score [%d]\n", opt->min_chain_score);
+	fprintf(fp, "    -m INT           min chaining score [%d]\n", opt->min_chain_score);
 	fprintf(fp, "    -p FLOAT         min secondary-to-primary score ratio [%g]\n", opt->pri_ratio);
 	fprintf(fp, "    -N INT           retain at most INT secondary alignments [%d]\n", opt->best_n);
 	fprintf(fp, "    --chain-only     perform chaining only without base alignment\n");
+	fprintf(fp, "    --mapq-mappability FILE\n");
+	fprintf(fp, "                     cap primary MAPQ using BED/bedGraph mappability intervals []\n");
+	fprintf(fp, "    --mapq-low-cap INT\n");
+	fprintf(fp, "                     MAPQ cap for unscored low-mappability BED rows [%d]\n", opt->mapq_low_cap);
 	fprintf(fp, "    -x STR           preset (sr, lr or adap for mixed short/long reads) [adap]\n");
 	fprintf(fp, "  Alignment:\n");
 	fprintf(fp, "    -A INT           matching score [%d]\n", opt->a);
@@ -494,7 +500,7 @@ int main_map(int argc, char *argv[])
 	int32_t c;
 	mb_idx_t *idx;
 	mb_opt_t mo;
-	char *fn_out = 0, *rg_line = 0, *fn_sv_blacklist = 0, *s, *problematic_bed = 0;
+	char *fn_out = 0, *rg_line = 0, *fn_sv_blacklist = 0, *fn_mapq_track = 0, *s, *problematic_bed = 0;
 	char *human_profile = 0, *unmap_regions_fn = 0, *profile_unmap_regions_fn = 0;
 	int32_t use_grch38_mask = 0;
 	mb_unmap_regions_t *unmap_regions = 0;
@@ -600,6 +606,12 @@ int main_map(int argc, char *argv[])
 			human_profile = o.arg;
 		} else if (c == 321) { // --unmap-regions
 			unmap_regions_fn = o.arg;
+		} else if (c == 322) { // --mapq-mappability
+			fn_mapq_track = o.arg;
+		} else if (c == 323) { // --mapq-low-cap
+			mo.mapq_low_cap = atoi(o.arg);
+			if (mo.mapq_low_cap < 0) mo.mapq_low_cap = 0;
+			if (mo.mapq_low_cap > 60) mo.mapq_low_cap = 60;
 		} else if (c == 601) { // --dbg-aln-seq
 			kom_dbg_flag |= MB_DBG_ALN_SEQ;
 		} else if (c == 602) { // --dbg-anchor
@@ -667,6 +679,15 @@ int main_map(int argc, char *argv[])
 	}
 	if (kom_verbose >= 3)
 		fprintf(stderr, "[M::%s::%.3f*%.2f] index loaded\n", __func__, kom_realtime(), kom_percent_cpu());
+	if (fn_mapq_track) {
+		mo.mapq_track = mb_mapq_track_load(idx, fn_mapq_track, mo.mapq_low_cap);
+		if (mo.mapq_track == 0) {
+			if (kom_verbose >= 1)
+				fprintf(stderr, "[ERROR] failed to load mappability track '%s'\n", fn_mapq_track);
+			mb_idx_destroy(idx);
+			return 1;
+		}
+	}
 
 	if (human_profile) {
 		if (strcmp(human_profile, "hmf-grch38") == 0) {
@@ -676,12 +697,14 @@ int main_map(int argc, char *argv[])
 			}
 			if (unmap_regions_fn == 0) {
 				fprintf(stderr, "[ERROR] --human-profile=hmf-grch38 could not find unmap_regions.38.tsv; use --unmap-regions=FILE or set HMF_RESOURCES.\n");
+				mb_mapq_track_destroy((mb_mapq_track_t*)mo.mapq_track);
 				mb_idx_destroy(idx);
 				return 1;
 			}
 		} else {
 			fprintf(stderr, "[ERROR] unknown human profile '%s'\n", human_profile);
 			free(profile_unmap_regions_fn);
+			mb_mapq_track_destroy((mb_mapq_track_t*)mo.mapq_track);
 			mb_idx_destroy(idx);
 			return 1;
 		}
@@ -691,6 +714,7 @@ int main_map(int argc, char *argv[])
 		if (unmap_regions == 0) {
 			fprintf(stderr, "[ERROR] failed to load unmap regions '%s'\n", unmap_regions_fn);
 			free(profile_unmap_regions_fn);
+			mb_mapq_track_destroy((mb_mapq_track_t*)mo.mapq_track);
 			mb_idx_destroy(idx);
 			return 1;
 		}
@@ -702,7 +726,11 @@ int main_map(int argc, char *argv[])
 	if (!(mo.flag & MB_F_PAF)) {
 		int ret;
 		ret = mb_fmt_sam_hdr(&hdr, idx->l2b, rg_line, MB_VERSION, argc, argv, mo.flag);
-		if (ret < 0) return 1; // TODO: free idx and out.s
+		if (ret < 0) {
+			mb_mapq_track_destroy((mb_mapq_track_t*)mo.mapq_track);
+			mb_idx_destroy(idx);
+			return 1;
+		}
 		if (hdr_ins.l > 0) kom_sprintf_lite(&hdr, "%s", hdr_ins.s);
 	}
 	if (hdr_ins.s) free(hdr_ins.s);
@@ -711,6 +739,7 @@ int main_map(int argc, char *argv[])
 	free(hdr.s);
 	free(profile_unmap_regions_fn);
 	mb_unmap_regions_destroy(unmap_regions);
+	mb_mapq_track_destroy((mb_mapq_track_t*)mo.mapq_track);
 	mb_idx_destroy(idx);
 	return 0;
 }

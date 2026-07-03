@@ -94,10 +94,14 @@ typedef struct {
 	int32_t sv_blacklist_mapq; // MAPQ cap for split/inversion hits overlapping an HMF SV-prep blacklist
 	int32_t problematic_mapq_cap;
 	const mb_unmap_regions_t *unmap_regions;
+	int32_t mapq_low_cap; // cap used for 3-column low-mappability BED rows
+	const struct mb_mapq_track_s *mapq_track; // optional MAPQ cap track
 } mb_opt_t;
 
 struct mb_idx_s;
 typedef struct mb_idx_s mb_idx_t;
+struct mb_mapq_track_s;
+typedef struct mb_mapq_track_s mb_mapq_track_t;
 
 typedef struct {
 	uint32_t cap;               // the capacity of cigar[]
@@ -141,6 +145,8 @@ const char *mb_idx_ctg_name(const mb_idx_t *idx, int32_t tid);
 int64_t mb_idx_ctg_len(const mb_idx_t *idx, int32_t tid);
 int64_t mb_idx_load_sv_blacklist(mb_idx_t *idx, const char *fn); // load HMF SV-prep blacklist BED (0-based half-open); returns intervals read, or -1 on open failure
 void mb_idx_clear_sv_blacklist(mb_idx_t *idx); // free the HMF SV-prep blacklist attached to an index
+mb_mapq_track_t *mb_mapq_track_load(const mb_idx_t *idx, const char *fn, int32_t default_cap);
+void mb_mapq_track_destroy(mb_mapq_track_t *track);
 
 /**
  * Load the built-in GRCh38 GRC problematic/false-duplication mask into the index
