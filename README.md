@@ -118,6 +118,12 @@ intervals, and `zh:Z` gives a confidence class (`high_confidence`,
 `low_mappability`, `non_primary`, or `unknown`). The SAM header describes these
 tags in `@CO` comment lines.
 
+For human references, `minibwa map --mapq-mappability mappability_150.38.bed.gz ref.fa reads.fq`
+loads a BED or bedGraph mappability track once and caps primary MAPQ for
+alignments overlapping low-mappability intervals. Three-column BED rows use
+`--mapq-low-cap` (20 by default); numeric fourth-column scores in the range
+0..1 are treated as mappability fractions and converted to a 0..60 cap.
+
 Note in the default adaptive mode, `-g`/`-w`/`-W`/`-N`/`-m`/`-s` only changes
 the short-read setting; the long-read setting is fixed. This mode is disabled
 with `--adap=no` or when `-x sr` or `-x lr` is specified.

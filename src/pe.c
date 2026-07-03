@@ -33,7 +33,7 @@ static const mb_hit_t *mb_select_unique_se(int32_t n_hit, const mb_hit_t *hit)
 {
 	int32_t j, n_pri = 0, mapq = 0, k = -1;
 	for (j = 0; j < n_hit; ++j)
-		if (hit[j].id == hit[j].parent) 
+		if (hit[j].id == hit[j].parent)
 			++n_pri, mapq = hit[j].mapq, k = j;
 	return n_pri == 1 && mapq >= 10? &hit[k] : 0;
 }
@@ -540,6 +540,8 @@ void mb_pair(void *km, const mb_opt_t *opt, const l2b_t *l2b, int32_t n_hit[2], 
 		mb_cap_mapq_by_mask(l2b, n_hit[1], hit[1], opt->mask_level);
 	}
 end_pairing:
+	mb_mapq_track_apply(opt->mapq_track, n_hit[0], hit[0]);
+	mb_mapq_track_apply(opt->mapq_track, n_hit[1], hit[1]);
 	mb_set_sam_pri(n_hit[0], hit[0], !!(opt->flag & MB_F_PRIMARY5));
 	mb_set_sam_pri(n_hit[1], hit[1], !!(opt->flag & MB_F_PRIMARY5));
 	mb_apply_unmap_regions(opt->unmap_regions, n_hit[0], hit[0]);

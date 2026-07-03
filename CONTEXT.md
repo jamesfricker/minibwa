@@ -154,6 +154,10 @@ _Avoid_: cigar string when the stored form is packed operations
 The confidence score assigned to a Hit after competing Hits, chain scores, pairing evidence, and read mode are considered. In this fork, Mapping Quality should be evaluated against human-specific ambiguity, especially Alternate Contigs, Decoy Sequences, and Repeat-Heavy Regions.
 _Avoid_: mapq only in prose
 
+**Mappability Track**:
+An optional BED or bedGraph interval set, loaded once from a file, that caps the Primary Hit Mapping Quality for alignments overlapping low-mappability intervals. It is a human-genome aid for down-weighting Repeat-Heavy Regions; three-column rows use a fixed low cap while numeric fourth-column scores in the range 0..1 are treated as mappability fractions converted to a 0..60 cap. The cap is applied after single-end Mapping Quality and again after Pairing so pairing cannot undo it.
+_Avoid_: mappability filter, mask when the effect is only a Mapping Quality cap
+
 **SAM Output**:
 The sequence alignment output format used for short reads, paired-end reads, and workflows that need CIGAR, flags, tags, and headers.
 _Avoid_: alignment output when the format matters
@@ -230,6 +234,7 @@ Use **Mini-batch** for input and worker scheduling. Use **SMEM Sub-batch** for t
 - One **Paired-End Fragment** contains exactly two **Read Segments**.
 - One **Insert Size Distribution** is estimated from many Paired-End Fragments.
 - One **Repeat-Heavy Region** can produce many competing **Seed Intervals**, **Anchors**, **Chains**, and **Hits**.
+- One optional **Mappability Track** caps the **Mapping Quality** of overlapping **Primary Hits**, typically to down-weight **Repeat-Heavy Regions**.
 - One **Human Accuracy Regression** or **Human Performance Regression** should be judged against human-sized references and human read sets.
 
 ## Example Dialogue
