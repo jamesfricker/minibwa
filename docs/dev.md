@@ -16,6 +16,27 @@ relationship with bwa-mem, ropebwt3 and minimap2:
 |Alignment|minimap2| Same ksw2 routines but different gluing code |
 |Pairing  |bwa-mem | With pre-alignment filtering |
 
+## Optimized release builds
+
+The default `make` build is intended for normal development: it keeps edit/build
+cycles predictable while still using `-O3` and the platform-specific SIMD flags
+detected by the Makefile. Optimized release builds are opt-in:
+
+```sh
+make release-lto
+
+make pgo-generate
+PGO_TRAIN_CMD='./minibwa map -t1 -P -o /dev/null ref.index reads.fastq' make pgo-train
+make pgo-use
+```
+
+PGO training should run a representative mapping command. For the mapping hot
+path, use reads and an index that resemble production inputs; otherwise the
+profile can overfit the wrong branches and cache behavior. The Makefile keeps
+automatic flags (`AUTO_CFLAGS`) and release optimization flags (`OPT_CFLAGS`)
+separate from user-supplied `CFLAGS`, so LTO and PGO can be enabled without
+asking users to paste a complete replacement compiler flag set.
+
 ## Similarity to bwa-mem and minimap2
 
 Similarity to bwa-mem:
