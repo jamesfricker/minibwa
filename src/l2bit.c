@@ -205,6 +205,12 @@ static void l2b_add_seq(l2b_t *l2b, uint64_t len, const char *seq, const char *n
 		l2b->mask[l2b->n_mask].en = off + len;
 		l2b->n_mask++;
 	}
+	if (ambi_len > 0) {
+		kom_grow(l2b_intv_t, l2b->ambi, l2b->n_ambi, l2b->m_ambi);
+		l2b->ambi[l2b->n_ambi].st = off + len - ambi_len;
+		l2b->ambi[l2b->n_ambi].en = off + len;
+		l2b->n_ambi++;
+	}
 }
 
 static void l2b_collate_str(l2b_t *l2b)
@@ -268,7 +274,6 @@ int l2b_save(const char *fn, const l2b_t *l2b)
 {
 	FILE *fp;
 	uint64_t i, len_name = 0, len_comm = 0;
-	uint32_t dummy = 0;
 	fp = fn == 0 || strcmp(fn, "-") == 0? stdout : fopen(fn, "wb");
 	if (fp == 0) return -1;
 	for (i = 0; i < l2b->n_ctg; ++i) {
@@ -277,7 +282,7 @@ int l2b_save(const char *fn, const l2b_t *l2b)
 		len_comm += ctg->comm? strlen(ctg->comm) + 1 : 1;
 	}
 	fwrite(L2B_MAGIC, 1, 4, fp);
-	fwrite(&dummy, 4, 1, fp);
+	fwrite(&l2b->flag, 4, 1, fp);
 	fwrite(&l2b->n_ctg, 8, 1, fp);
 	fwrite(&l2b->tot_len, 8, 1, fp);
 	fwrite(&l2b->n_ambi, 8, 1, fp);
@@ -300,7 +305,6 @@ l2b_t *l2b_load(const char *fn)
 {
 	FILE *fp;
 	char magic[4], *p_name, *p_comm;
-	uint32_t dummy;
 	uint64_t off, i, len_name, len_comm;
 	l2b_t *l2b;
 	fp = fn == 0 || strcmp(fn, "-") == 0? stdin : fopen(fn, "rb");
@@ -311,7 +315,7 @@ l2b_t *l2b_load(const char *fn)
 		return 0;
 	}
 	l2b = kom_calloc(l2b_t, 1);
-	fread(&dummy, 4, 1, fp);
+	fread(&l2b->flag, 4, 1, fp);
 	fread(&l2b->n_ctg, 8, 1, fp);
 	fread(&l2b->tot_len, 8, 1, fp);
 	fread(&l2b->n_ambi, 8, 1, fp);

@@ -74,6 +74,7 @@ structural changes anyway.
 .RB [ -t
 .IR nThreads ]
 .RB [ --meth ]
+.RB [ --human ]
 .I ref.fa
 .RI [ idxPrefix ]
 
@@ -109,6 +110,12 @@ Generate an index for aligning bisulfite sequencing reads. Minibwa will
 additionally generate
 .IR idxPrefix .meth.mbw
 which combines C-to-T and G-to-A converted reference genomes.
+.TP
+.B --human
+Prevent seed anchors from crossing ambiguous reference bases. This mode is
+intended for human clinical indexes where artificial seeds inside randomized
+.B N
+runs are undesirable.
 
 .SH THE MAP COMMAND
 .SS Summary

@@ -77,6 +77,7 @@ minibwa index -t8 ref.fa     # index with 8 threads, using 18N RAM (N is the gen
 minibwa index ref.fa prefix  # use a different index prefix instead of ref.fa
 minibwa index -l ref.fa      # use less memory at the cost of performance
 minibwa index --meth ref.fa  # generate BS-seq index
+minibwa index --human ref.fa # prevent seeds through ambiguous reference bases
 ```
 Minibwa generates two files: `ref.fa.l2b` for 2-bit encoded reference genome
 sequences and `ref.fa.mbw` for BWT and sampled suffix array. In the `--meth`

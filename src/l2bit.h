@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #define L2B_MAGIC "L2B\1"
+#define L2B_F_NO_AMBI_SEED 0x1
 
 typedef enum { L2B_METH_NONE=0, L2B_METH_C2T, L2B_METH_G2A } l2b_meth_t;
 
@@ -17,6 +18,7 @@ typedef struct {
 } l2b_intv_t;
 
 typedef struct {
+	uint32_t flag;
 	uint64_t tot_len;
 	uint64_t n_ctg, m_ctg;
 	l2b_ctg_t *ctg;
