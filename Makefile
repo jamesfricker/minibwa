@@ -151,6 +151,8 @@ test: $(PROG) $(BUILD_DIR)/test-unmap-regions
 	@mkdir -p $(BUILD_DIR)
 	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) tests/test_sam_alt_hla.c $(LIB_TARGET) -o $(BUILD_DIR)/test_sam_alt_hla $(ALL_LDLIBS)
 	$(BUILD_DIR)/test_sam_alt_hla
+	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) tests/test-human-tiebreak.c $(LIB_TARGET) -o $(BUILD_DIR)/test-human-tiebreak $(ALL_LDLIBS)
+	$(BUILD_DIR)/test-human-tiebreak
 	$(BUILD_DIR)/test-unmap-regions tests/data/unmap_regions.38.tsv
 	./bench/run-human-benchmark.py --out-dir .context/human-benchmark
 	sh tests/test-problematic-mask.sh
