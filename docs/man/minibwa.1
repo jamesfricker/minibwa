@@ -366,6 +366,15 @@ tag as an alternative placement rather than as a split-alignment
 .B SA
 tag. This only affects tag reporting, not read placement.
 .TP
+.B --human-tags
+Output optional human reference annotations on mapped SAM and PAF records:
+.BR zc ,
+.B zm
+and
+.BR zh .
+The tags are derived from contig names and soft-masked reference intervals in
+the loaded index.
+.TP
 .B -y
 Copy FASTA/Q comments to output
 .TP
@@ -445,6 +454,9 @@ MD	Z	Difference string in the SAM spec
 cs	Z	Difference string
 pa	Z	Pseudoautosomal region: PAR1 or PAR2
 sb	Z	HMF SV-prep blacklist tag (HMF_SV_BLACKLIST)
+zc	Z	Human contig class when --human-tags is enabled
+zm	f	Unmasked alignment fraction when --human-tags is enabled
+zh	Z	Human confidence class when --human-tags is enabled
 .TE
 
 .SH PSEUDOAUTOSOMAL REGIONS

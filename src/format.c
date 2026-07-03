@@ -1,10 +1,89 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <ctype.h>
+#include <string.h>
 #include "mbpriv.h"
 #include "kommon.h"
 
 static char mb_rg_id[256];
+
+static int str_contains_ci(const char *s, const char *needle);
+
+static int str_eq_ci(const char *s, const char *t)
+{
+	int i;
+	for (i = 0; s[i] && t[i]; ++i)
+		if (tolower((unsigned char)s[i]) != tolower((unsigned char)t[i]))
+			return 0;
+	return s[i] == 0 && t[i] == 0;
+}
+
+static int str_starts_ci(const char *s, const char *prefix)
+{
+	int i;
+	for (i = 0; prefix[i]; ++i)
+		if (s[i] == 0 || tolower((unsigned char)s[i]) != tolower((unsigned char)prefix[i]))
+			return 0;
+	return 1;
+}
+
+static int is_primary_human_ctg(const char *name)
+{
+	const char *s = str_starts_ci(name, "chr")? name + 3 : name;
+	char *end = 0;
+	long n;
+	if (str_eq_ci(s, "x") || str_eq_ci(s, "y") || str_eq_ci(s, "m") || str_eq_ci(s, "mt"))
+		return 1;
+	n = strtol(s, &end, 10);
+	return end && *end == 0 && n >= 1 && n <= 22;
+}
+
+static const char *human_contig_class(const char *name)
+{
+	if (str_contains_ci(name, "hla")) return "hla";
+	if (str_contains_ci(name, "decoy") || str_eq_ci(name, "hs37d5") || str_eq_ci(name, "hs38d1")) return "decoy";
+	if (str_starts_ci(name, "chrUn") || str_contains_ci(name, "unplaced")) return "unplaced";
+	if (str_contains_ci(name, "_random") || str_contains_ci(name, "random")) return "random";
+	if (str_contains_ci(name, "_alt") || str_contains_ci(name, "alt_") || str_contains_ci(name, "alternate")) return "alt";
+	if (is_primary_human_ctg(name)) return "primary";
+	if (str_starts_ci(name, "GL") || str_starts_ci(name, "KI") || str_starts_ci(name, "JH") ||
+		str_starts_ci(name, "KN") || str_starts_ci(name, "NT") || str_starts_ci(name, "NW"))
+		return "unplaced";
+	return "unknown";
+}
+
+static const char *human_region_class(const char *contig_class, double mappability)
+{
+	if (mappability < 0.5) return "low_mappability";
+	if (strcmp(contig_class, "primary") == 0) return "high_confidence";
+	if (strcmp(contig_class, "unknown") == 0) return "unknown";
+	return "non_primary";
+}
+
+static void write_human_tags(kstring_t *s, const l2b_t *l2b, const mb_hit_t *r)
+{
+	const char *contig_class, *region_class;
+	uint64_t aln_len, masked;
+	double mappability = 1.0;
+	int map_thousand = 1000;
+	if (r == 0 || l2b == 0 || r->tid < 0 || r->tid >= (int64_t)l2b->n_ctg) return;
+	contig_class = human_contig_class(l2b->ctg[r->tid].name);
+	if (r->te > r->ts) {
+		aln_len = r->te - r->ts;
+		masked = l2b_mask_overlap(l2b, r->tid, r->ts, r->te);
+		if (masked > aln_len) masked = aln_len;
+		mappability = 1.0 - (double)masked / (double)aln_len;
+		map_thousand = (int)(mappability * 1000.0 + 0.5);
+		if (map_thousand < 0) map_thousand = 0;
+		if (map_thousand > 1000) map_thousand = 1000;
+	}
+	region_class = human_region_class(contig_class, mappability);
+	kom_sprintf_lite(s, "\tzc:Z:%s\tzm:f:%d.%d%d%d\tzh:Z:%s",
+					  contig_class, map_thousand / 1000,
+					  map_thousand / 100 % 10, map_thousand / 10 % 10, map_thousand % 10,
+					  region_class);
+}
 
 /**************
  * PAF output *
@@ -33,6 +112,7 @@ void mb_fmt_paf(kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, const mb_hi
 	if (p->parent == p->id) kom_sprintf_lite(s, "\ts2:i:%d", p->subsc >= 0? p->subsc : 0);
 	if (p->sv_blacklist) kom_sprintf_lite(s, "\tsb:Z:HMF_SV_BLACKLIST");
 	if (p->problematic) kom_sprintf_lite(s, "\tgm:Z:GRC");
+	if (opt_flag & MB_F_HUMAN_TAGS) write_human_tags(s, l2b, p);
 	if (p->p) {
 		write_tags(s, p);
 		if (p->p->n_cigar > 0) {
@@ -105,7 +185,7 @@ err_set_rg:
 	return -1;
 }
 
-int mb_fmt_sam_hdr(kstring_t *str, const l2b_t *idx, const char *rg, const char *ver, int argc, char *argv[])
+int mb_fmt_sam_hdr(kstring_t *str, const l2b_t *idx, const char *rg, const char *ver, int argc, char *argv[], uint64_t opt_flag)
 {
 	int i, ret = 0;
 	str->l = 0;
@@ -113,6 +193,10 @@ int mb_fmt_sam_hdr(kstring_t *str, const l2b_t *idx, const char *rg, const char 
 	if (idx)
 		for (i = 0; i < idx->n_ctg; ++i)
 			kom_sprintf_lite(str, "@SQ\tSN:%s\tLN:%ld\n", idx->ctg[i].name, idx->ctg[i].len);
+	if (opt_flag & MB_F_HUMAN_TAGS) {
+		kom_sprintf_lite(str, "@CO\tminibwa human-tags: zc=contig class from reference name; zm=unmasked alignment fraction from soft-masked reference; zh=human confidence class\n");
+		kom_sprintf_lite(str, "@CO\tminibwa human-tags classes: zc primary,alt,hla,decoy,random,unplaced,unknown; zh high_confidence,low_mappability,non_primary,unknown\n");
+	}
 	if (rg) ret = sam_write_rg_line(str, rg);
 	kom_sprintf_lite(str, "@PG\tID:minibwa\tPN:minibwa");
 	if (ver) kom_sprintf_lite(str, "\tVN:%s", ver);
@@ -386,6 +470,7 @@ void mb_fmt_sam(void *km, kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, i
 		if (r->par) kom_sprintf_lite(s, "\tpa:Z:%s", mb_par_name(r->par));
 		if (r->sv_blacklist) kom_sprintf_lite(s, "\tsb:Z:HMF_SV_BLACKLIST");
 		if (r->problematic) kom_sprintf_lite(s, "\tgm:Z:GRC");
+		if (opt->flag & MB_F_HUMAN_TAGS) write_human_tags(s, l2b, r);
 		// MC:Z mate CIGAR and MQ:i mate MAPQ; r_next is the mate's primary (see above).
 		if (n_seg > 1 && r_next && r_next->p && r_next->p->n_cigar > 0 && mate_qlen > 0) {
 			kom_sprintf_lite(s, "\tMC:Z:");
