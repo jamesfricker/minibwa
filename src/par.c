@@ -107,6 +107,7 @@ static void mb_par_recalc_parent_evidence(const l2b_t *l2b, int32_t n, mb_hit_t 
 		if (h[i].parent == h[i].id) {
 			h[i].subsc = 0;
 			h[i].n_sub = 0;
+			if (h[i].p) h[i].p->dp_max2 = 0;
 		}
 	}
 	for (i = 0; i < n; ++i) {
