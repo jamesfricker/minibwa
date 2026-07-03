@@ -12,6 +12,7 @@ void mb_bwtgen(const char *fn_pac, const char *fn_bwt, int block_size);
 static ko_longopt_t long_opts[] = { // common long options shared across all index-related functions
 	{ "help", ko_no_argument, 901 },
 	{ "meth", ko_no_argument, 902 },
+	{ "human", ko_no_argument, 903 },
 	{ 0, 0, 0 }
 };
 
@@ -111,6 +112,7 @@ static int usage_fa2bit(FILE *fp, uint64_t seed)
 	fprintf(fp, "  -s INT    random seed [%lu]\n", (unsigned long)seed);
 	fprintf(fp, "  -p        output the BWA pac format\n");
 	fprintf(fp, "  -2        output both strands (effective with -p)\n");
+	fprintf(fp, "  --human   prevent seeding through ambiguous reference bases\n");
 	fprintf(fp, "  --help    print this help message\n");
 	return fp == stdout? 0 : 1;
 }
@@ -118,7 +120,7 @@ static int usage_fa2bit(FILE *fp, uint64_t seed)
 int main_fa2bit(int argc, char *argv[])
 {
 	l2b_t *l2b;
-	int out_pac = 0, both_strand = 0;
+	int out_pac = 0, both_strand = 0, human_mode = 0;
 	uint64_t seed = 11;
 	ketopt_t o = KETOPT_INIT;
 	int c;
@@ -127,9 +129,11 @@ int main_fa2bit(int argc, char *argv[])
 		else if (c == 'p') out_pac = 1;
 		else if (c == '2') both_strand = 1;
 		else if (c == 901) return usage_fa2bit(stdout, seed);
+		else if (c == 903) human_mode = 1;
 	}
 	if (argc - o.ind < 2) return usage_fa2bit(stderr, seed);
 	l2b = l2b_import(argv[o.ind], seed);
+	if (human_mode) l2b->flag |= L2B_F_NO_AMBI_SEED;
 	if (out_pac)
 		l2b_save_pac(argv[o.ind+1], l2b, both_strand);
 	else
@@ -258,7 +262,7 @@ static int usage_index(FILE *fp, uint64_t seed, int sa_bit, int n_thread)
 	(void)n_thread;
 	fprintf(fp, "Usage: minibwa index [options] <in.fasta> [out.prefix]\n");
 	fprintf(fp, "Options:\n");
-	fprintf(fp, "  -s INT    random seed for amibiguous bases [%ld]\n", (unsigned long)seed);
+	fprintf(fp, "  -s INT    random seed for ambiguous bases [%ld]\n", (unsigned long)seed);
 	fprintf(fp, "  -u INT    SA sample rate at 1/(1<<INT) [%d]\n", sa_bit);
 	fprintf(fp, "  -l        low-memory GPL'd algorithm for BWT construction\n");
 	fprintf(fp, "  -b NUM    block size (effective with -l) [10m]\n");
@@ -266,6 +270,7 @@ static int usage_index(FILE *fp, uint64_t seed, int sa_bit, int n_thread)
 	fprintf(fp, "  -t INT    number of threads (effective w/o -l) [%d]\n", n_thread);
 #endif
 	fprintf(fp, "  --meth    build FM-index for BS-seq mapping\n");
+	fprintf(fp, "  --human   prevent seeding through ambiguous reference bases\n");
 	fprintf(fp, "  --help    print this help message\n");
 	return fp == stdout? 0 : 1;
 }
@@ -273,7 +278,7 @@ static int usage_index(FILE *fp, uint64_t seed, int sa_bit, int n_thread)
 int main_index(int argc, char *argv[])
 {
 	ketopt_t o = KETOPT_INIT;
-	int c, low_mem = 0, n_thread = 4, sa_bit = 4, is_meth = 0;
+	int c, low_mem = 0, n_thread = 4, sa_bit = 4, is_meth = 0, human_mode = 0;
 	int64_t block_size = 10000000;
 	uint64_t seed = 11;
 	char *prefix, *fn_l2b, *fn_bwt, *fn_meth_bwt = 0;
@@ -288,6 +293,7 @@ int main_index(int argc, char *argv[])
 		else if (c == 's') seed = atol(o.arg);
 		else if (c == 901) return usage_index(stdout, seed, sa_bit, n_thread);
 		else if (c == 902) is_meth = 1;
+		else if (c == 903) human_mode = 1;
 	}
 #ifndef USE_GPL
 	(void)block_size;
@@ -306,6 +312,7 @@ int main_index(int argc, char *argv[])
 
 	l2b = l2b_import(argv[o.ind], seed);
 	kom_assert(l2b, "failed to read the genome FASTA.");
+	if (human_mode) l2b->flag |= L2B_F_NO_AMBI_SEED;
 	if (low_mem) {
 #ifdef USE_GPL
 		l2b_save_pac(fn_l2b, l2b, 1);

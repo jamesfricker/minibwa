@@ -173,9 +173,21 @@ static void mb_anchor_dedup(mb_anchor_v *v) // NB: assuming sorted by tpos
 typedef struct { int64_t st, en; } anchor_aux_t;
 typedef struct { int64_t a, i; } sa_aux_t;
 
+static inline int l2b_has_ambi_global(const l2b_t *l2b, uint64_t st, uint64_t en)
+{
+	uint64_t lo = 0, hi = l2b->n_ambi, mid;
+	while (lo < hi) {
+		mid = (lo + hi) / 2;
+		if (l2b->ambi[mid].en > st) hi = mid;
+		else lo = mid + 1;
+	}
+	return lo < l2b->n_ambi && l2b->ambi[lo].st < en;
+}
+
 static void process_batch(void *km, const mb_idx_t *idx, const anchor_aux_t *aux, int32_t m, const sa_aux_t *b, uint64_t *a, int32_t qlen, l2b_meth_t mt, int32_t soft_mask_min_occ, const mb_sai_v *u, mb_anchor_v *v)
 {
 	int64_t j, k;
+	int no_ambi_seed = !!(idx->l2b->flag & L2B_F_NO_AMBI_SEED);
 	for (k = 0; k < m; ++k) a[k] = b[k].a;
 	mb_bwt_sa_batch(km, idx->bwt, m, a);
 	for (k = 0; k < m; ++k) {
@@ -199,6 +211,10 @@ static void process_batch(void *km, const mb_idx_t *idx, const anchor_aux_t *aux
 			if (idx->l2b->n_mask > 0 && soft_mask_min_occ > 0 && u->a[j].size > soft_mask_min_occ &&
 				l2b_mask_overlap(idx->l2b, tid, cst, cst + len) == len)
 				continue;
+			if (no_ambi_seed) {
+				uint64_t gst = idx->l2b->ctg[tid].off + cst;
+				if (l2b_has_ambi_global(idx->l2b, gst, gst + len)) continue;
+			}
 			rev = !!rev;
 			ctg = &idx->l2b->ctg[tid];
 			Kgrow(km, mb_anchor_t, v->a, v->n, v->m);
