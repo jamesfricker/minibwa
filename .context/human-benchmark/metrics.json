@@ -1,0 +1,26 @@
+{
+  "alignment_rate": 1.0,
+  "alt_primaries": 1,
+  "decoy_primaries": 1,
+  "hla_primaries": 1,
+  "mapped_reads": 5,
+  "mapq": {
+    "0": 1,
+    "1-9": 2,
+    "10-29": 0,
+    "30-59": 0,
+    "60": 2
+  },
+  "minibwa_cpu_seconds": 0.021,
+  "minibwa_real_seconds": 0.015,
+  "peak_rss_gb": 0.034,
+  "reads": 5,
+  "stratifications": {
+    "blacklist": 1,
+    "giab-high-confidence": 1,
+    "hla": 2,
+    "low-mappability": 1
+  },
+  "validation_failures": [],
+  "wall_seconds": 0.025192
+}
