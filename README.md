@@ -83,6 +83,10 @@ sequences and `ref.fa.mbw` for BWT and sampled suffix array. In the `--meth`
 mode, minibwa additionally generates `ref.fa.meth.mbw` for the BWT of the
 3-base genome.
 
+Lowercase bases in the reference FASTA are treated as soft-masked and their
+intervals are recorded in `ref.fa.l2b`. Soft-masking does not change the indexed
+sequence, so a reference without lowercase bases behaves exactly as before.
+
 #### Mapping
 
 By default, minibwa dynamically changes multiple internal parameters based on
@@ -96,6 +100,12 @@ minibwa map --meth ref.fa read1.fq read2.fq # map BS-seq reads; requiring "index
 Note in the default adaptive mode, `-g`/`-w`/`-W`/`-N`/`-m`/`-s` only changes
 the short-read setting; the long-read setting is fixed. This mode is disabled
 with `--adap=no` or when `-x sr` or `-x lr` is specified.
+
+If the reference was indexed with soft-masked (lowercase) intervals, minibwa
+uses them to reduce spurious placements: high-occurrence anchors falling
+entirely within a soft-masked interval are dropped during seeding, and the
+mapping quality of an alignment is capped at 10 when most of its reference span
+is soft-masked. References with no soft-masked bases are unaffected.
 
 #### Mapping with legacy bwa-mem CLI
 

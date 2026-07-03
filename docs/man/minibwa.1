@@ -89,6 +89,10 @@ bytes where
 is the length of the genome. Use
 .B -l
 to enable the BWT-SW algorithm which is slower but uses much less memory.
+Lowercase bases in the input FASTA are treated as soft-masked and their
+intervals are recorded in
+.IR idxPrefix .l2b
+without changing the indexed sequence.
 
 .SS Options
 .TP 10
@@ -120,6 +124,11 @@ which combines C-to-T and G-to-A converted reference genomes.
 Map reads to an index genome. Minibwa automatically detects
 interleaved read pairs and like bwa-mem and minimap2, allowing mixed single-end
 and paired-ened reads as input.
+
+If the index records soft-masked (lowercase) intervals, minibwa drops
+high-occurrence anchors that fall entirely within a soft-masked interval during
+seeding and caps the mapping quality at 10 when most of an alignment's reference
+span is soft-masked. An index with no soft-masked bases is unaffected.
 
 .SS Common Options
 .TP 10
