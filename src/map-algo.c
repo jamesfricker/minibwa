@@ -477,7 +477,22 @@ static void mb_set_inv_mapq(void *km, int n_regs, mb_hit_t *regs)
 	kfree(km, aux);
 }
 
-void mb_set_mapq(void *km, int32_t qlen, int n_regs, mb_hit_t *regs, int min_chain_sc, int match_sc, int is_sr, int max_sr_len)
+void mb_cap_mapq_by_mask(const l2b_t *l2b, int n_regs, mb_hit_t *regs, float mask_level)
+{
+	int i;
+	if (l2b == 0 || l2b->n_mask == 0 || mask_level <= 0.0f) return;
+	for (i = 0; i < n_regs; ++i) {
+		mb_hit_t *r = &regs[i];
+		int64_t len, masked;
+		if (r->mapq == 0 || r->tid < 0 || r->te <= r->ts) continue;
+		len = r->te - r->ts;
+		masked = l2b_mask_overlap(l2b, r->tid, r->ts, r->te);
+		if (masked > mask_level * len && r->mapq > 10)
+			r->mapq = 10;
+	}
+}
+
+void mb_set_mapq(void *km, const l2b_t *l2b, int32_t qlen, int n_regs, mb_hit_t *regs, int min_chain_sc, int match_sc, int is_sr, int max_sr_len, float mask_level)
 {
 	const int32_t mapQ_coef_len = 50;
 	const double mapQ_coef_fac = 3.0; // should be log(mapQ_coef_len)), but bwa-mem uses 3.0 due to a bug. Let's match bwa-mem
@@ -522,6 +537,7 @@ void mb_set_mapq(void *km, int32_t qlen, int n_regs, mb_hit_t *regs, int min_cha
 			if (r->p && r->p->dp_max > r->p->dp_max2 && r->mapq == 0) r->mapq = 1;
 		} else r->mapq = 0;
 	}
+	mb_cap_mapq_by_mask(l2b, n_regs, regs, mask_level);
 	mb_set_inv_mapq(km, n_regs, regs);
 }
 
@@ -587,7 +603,7 @@ static mb_hit_t *mb_map_sai_core(const mb_opt_t *opt, const mb_idx_t *idx, int64
 	// collect anchors
 	chn_pen_gap = opt->chain_gap_scale * .01 * opt->min_len;
 	if (kom_dbg_flag & MB_DBG_SEED) mb_dbg_seed(u->n, u->a, qname);
-	seed_ratio = mb_anchor(b->km, idx, u, opt->min_len, qlen, seq, mt, opt->max_occ, &v);
+	seed_ratio = mb_anchor(b->km, idx, u, opt->min_len, qlen, seq, mt, opt->max_occ, opt->max_sub_occ, &v);
 	kfree(b->km, u->a); // no longer needed
 	u->n = 0, u->a = 0;
 
@@ -638,7 +654,7 @@ static mb_hit_t *mb_map_sai_core(const mb_opt_t *opt, const mb_idx_t *idx, int64
 		hit[i].seed_ratio = (int32_t)(255. * seed_ratio + .499);
 		if (hit[i].seed_ratio == 0) hit[i].seed_ratio = 1;
 	}
-	mb_set_mapq(b->km, qlen, n_hit, hit, opt->min_chain_score, opt->a, is_sr, opt->max_sr_len);
+	mb_set_mapq(b->km, idx->l2b, qlen, n_hit, hit, opt->min_chain_score, opt->a, is_sr, opt->max_sr_len, opt->mask_level);
 
 	// clean up
 	kfree(b->km, a);

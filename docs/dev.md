@@ -79,4 +79,11 @@ Similarity to minimap2:
    in these regions cannot be aligned well anyway. On simulated data, the
    accuracy remains similar.
 
+ * Minibwa records soft-masked (lowercase) reference intervals in the `l2bit`
+   file and honors them during mapping (`l2b_mask_overlap`). It drops
+   high-occurrence anchors that fall entirely inside a soft-masked interval
+   during seeding and caps the mapping quality at 10 when most of an alignment's
+   reference span is soft-masked (`mb_cap_mapq_by_mask`). A reference without
+   soft-masked bases is unaffected.
+
  * Minibwa natively aligns directional BS-seq reads.

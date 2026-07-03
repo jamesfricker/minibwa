@@ -66,7 +66,7 @@ int main(void)
 	assert(h[1].sam_pri == 1);
 	assert(h[0].sam_pri == 0);
 
-	mb_set_mapq(0, 100, 2, h, 25, 2, 1, 325);
+	mb_set_mapq(0, &l2b, 100, 2, h, 25, 2, 1, 325, 0.5f);
 	assert(h[1].mapq >= 10);
 	assert(h[0].mapq == 0);
 
