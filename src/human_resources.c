@@ -355,7 +355,7 @@ static int mb_hr_import_tar(const char *fn, mb_hr_res_t *res, int n_res)
 		size = mb_hr_tar_size(hdr);
 		pad = (512 - (size & 511)) & 511;
 		rid = (hdr[156] == 0 || hdr[156] == '0')? mb_hr_resource_index(res, n_res, name) : -1;
-		if (rid >= 0) {
+		if (rid >= 0 && !res[rid].found) {
 			int gzipped = mb_hr_endswith(name, ".gz");
 			if (mb_hr_process_tar_member(fp, size, gzipped, &res[rid].st) < 0) {
 				fprintf(stderr, "ERROR: failed to read tar member '%s'\n", name);
