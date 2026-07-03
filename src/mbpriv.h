@@ -17,10 +17,17 @@
 #define MB_SEED_LONG_JOIN  0x1
 #define MB_SEED_IGNORE     0x2
 
+typedef struct {
+	int64_t st, en;
+} mb_region_t;
+
 struct mb_idx_s {
 	int32_t is_meth;
 	l2b_t *l2b;
 	mb_bwt_t *bwt;
+	int64_t n_sv_blacklist;
+	int32_t *sv_bl_n, *sv_bl_m;
+	mb_region_t **sv_bl;
 };
 
 typedef struct {
@@ -82,6 +89,7 @@ void mb_par_resolve(const l2b_t *l2b, int32_t n, mb_hit_t *h, int32_t sub_diff);
 const char *mb_par_name(int32_t par);
 void mb_set_mapq(void *km, const l2b_t *l2b, int32_t qlen, int n_regs, mb_hit_t *regs, int min_chain_sc, int match_sc, int is_sr, int max_sr_len, float mask_level);
 void mb_cap_mapq_by_mask(const l2b_t *l2b, int n_regs, mb_hit_t *regs, float mask_level);
+void mb_apply_sv_blacklist(const mb_idx_t *idx, const mb_opt_t *opt, int n_regs, mb_hit_t *regs);
 
 mb_hit_t *mb_map_sai(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, const char *seq, l2b_meth_t mt, mb_sai_v *u, int32_t *n_hit_, mb_tbuf_t *b, const char *qname);
 mb_hit_t *mb_map_sai4(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, const uint8_t *seq, l2b_meth_t mt, mb_sai_v *u, int32_t *n_hit_, mb_tbuf_t *b, const char *qname);

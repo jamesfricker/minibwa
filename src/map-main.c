@@ -206,6 +206,8 @@ static void *worker_pipeline(void *shared, int step, void *in)
 
 		for (k = 0; k < s->n_frag; ++k) {
 			int32_t seg_st = s->seg_off[k], seg_en = s->seg_off[k] + s->seg_cnt[k];
+			for (i = seg_st; i < seg_en; ++i)
+				mb_apply_sv_blacklist(idx, opt, s->n_hit[i], s->hit[i]);
 			for (i = seg_st; i < seg_en; ++i) {
 				mb_bseq1_t *t = &s->seq[i];
 				int32_t mate_qlen = 0; // mate's l_seq for MC:Z; 0 suppresses MC/MQ
@@ -340,6 +342,8 @@ static ko_longopt_t long_options[] = {
 	{ "hic",          ko_no_argument,       311 },
 	{ "xa",           ko_required_argument, 312 },
 	{ "human",        ko_no_argument,       313 },
+	{ "hmf-sv-blacklist", ko_required_argument, 314 },
+	{ "hmf-sv-blacklist-mapq", ko_required_argument, 315 },
 	{ "dbg-aln-seq",  ko_no_argument,       601 },
 	{ "dbg-anchor",   ko_no_argument,       602 },
 	{ "dbg-seed",     ko_no_argument,       603 },
@@ -364,6 +368,10 @@ static int usage_map(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "    --hic            map Hi-C reads; equivalent to option -5P\n");
 	fprintf(fp, "    --meth           map *directional* bisulfite sequencing reads\n");
 	fprintf(fp, "    --human          make XA/SA tags aware of human ALT/HLA contigs\n");
+	fprintf(fp, "    --hmf-sv-blacklist=FILE\n");
+	fprintf(fp, "                     cap split/inversion MAPQ and tag hits overlapping HMF SV-prep BED intervals\n");
+	fprintf(fp, "    --hmf-sv-blacklist-mapq=INT\n");
+	fprintf(fp, "                     MAPQ cap for --hmf-sv-blacklist [%d]\n", opt->sv_blacklist_mapq);
 	fprintf(fp, "  Mapping:\n");
 	fprintf(fp, "    -k INT           min seed length [%d]\n", opt->min_len);
 	fprintf(fp, "    -c NUM           max seed occurrences [%d]\n", opt->max_occ);
@@ -418,7 +426,7 @@ int main_map(int argc, char *argv[])
 	int32_t c;
 	mb_idx_t *idx;
 	mb_opt_t mo;
-	char *fn_out = 0, *rg_line = 0, *s;
+	char *fn_out = 0, *rg_line = 0, *fn_sv_blacklist = 0, *s;
 	ketopt_t o = KETOPT_INIT;
 	kstring_t hdr_ins = {0,0,0}, hdr = {0,0,0};
 
@@ -490,6 +498,19 @@ int main_map(int argc, char *argv[])
 			mo.xa_max = kom_parse_num(o.arg, 0);
 		} else if (c == 313) { // --human
 			mo.flag |= MB_F_HUMAN_ALT;
+		} else if (c == 314) { // --hmf-sv-blacklist
+			fn_sv_blacklist = o.arg;
+			mo.flag |= MB_F_HMF_SV_BLACKLIST;
+		} else if (c == 315) { // --hmf-sv-blacklist-mapq
+			char *endp;
+			long v;
+			errno = 0;
+			v = strtol(o.arg, &endp, 10);
+			if (errno || endp == o.arg || *endp != 0 || v < 0 || v > 255) {
+				fprintf(stderr, "ERROR: invalid --hmf-sv-blacklist-mapq value '%s' (expected integer in [0,255])\n", o.arg);
+				return 1;
+			}
+			mo.sv_blacklist_mapq = (int32_t)v;
 		} else if (c == 601) { // --dbg-aln-seq
 			kom_dbg_flag |= MB_DBG_ALN_SEQ;
 		} else if (c == 602) { // --dbg-anchor
@@ -534,6 +555,10 @@ int main_map(int argc, char *argv[])
 
 	idx = mb_idx_load(argv[o.ind], !!(mo.flag & MB_F_METH));
 	kom_assert(idx, "failed to load the index.");
+	if (fn_sv_blacklist && mb_idx_load_sv_blacklist(idx, fn_sv_blacklist) < 0) {
+		mb_idx_destroy(idx);
+		return 1;
+	}
 	if (kom_verbose >= 3)
 		fprintf(stderr, "[M::%s::%.3f*%.2f] index loaded\n", __func__, kom_realtime(), kom_percent_cpu());
 

@@ -28,6 +28,7 @@ LIB_SRCS := \
 	src/lchain.c \
 	src/align.c \
 	src/pe.c \
+	src/sv_blacklist.c \
 	src/cs.c \
 	src/format.c \
 	src/ksw2_extz2_sse.c \
