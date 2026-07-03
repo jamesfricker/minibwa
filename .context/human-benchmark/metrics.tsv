@@ -1,2 +1,2 @@
 reads	mapped_reads	alignment_rate	wall_seconds	minibwa_real_seconds	minibwa_cpu_seconds	peak_rss_gb	mapq_0	mapq_1_9	mapq_10_29	mapq_30_59	mapq_60	alt_primaries	hla_primaries	decoy_primaries	bed_giab-high-confidence	bed_low-mappability	bed_hla	bed_blacklist
-5	5	1.0	0.025192	0.015	0.021	0.034	1	2	0	0	2	1	1	1	1	1	2	1
+5	5	1.0	0.028513	0.016	0.023	0.034	1	2	0	0	2	1	1	1	1	1	2	1

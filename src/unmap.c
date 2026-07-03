@@ -58,7 +58,7 @@ static void add_region(mb_unmap_regions_t *r, int32_t tid, int64_t st, int64_t e
 	if (en <= st) return;
 	kom_grow(mb_unmap_intv_t, ctg->a, ctg->n, ctg->m);
 	iv = &ctg->a[ctg->n++];
-	iv->st = st, iv->en = en, iv->max_depth = max_depth;
+	iv->st = st, iv->en = en, iv->max_en = en, iv->max_depth = max_depth;
 	++r->n_regions;
 }
 
@@ -105,9 +105,15 @@ mb_unmap_regions_t *mb_unmap_regions_load(const char *fn, const l2b_t *l2b)
 	}
 	gzclose(fp);
 
-	for (n = 0; n < r->n_ctg; ++n)
-		if (r->ctg[n].n > 1)
-			radix_sort_unmap(r->ctg[n].a, r->ctg[n].a + r->ctg[n].n);
+	for (n = 0; n < r->n_ctg; ++n) {
+		mb_unmap_ctg_t *ctg = &r->ctg[n];
+		int32_t i;
+		if (ctg->n > 1)
+			radix_sort_unmap(ctg->a, ctg->a + ctg->n);
+		for (i = 0; i < ctg->n; ++i)
+			ctg->a[i].max_en = i == 0 ? ctg->a[i].en
+				: (ctg->a[i].en > ctg->a[i-1].max_en ? ctg->a[i].en : ctg->a[i-1].max_en);
+	}
 	return r;
 }
 
@@ -125,17 +131,24 @@ void mb_unmap_regions_destroy(mb_unmap_regions_t *r)
 int32_t mb_unmap_hit_max_depth(const mb_unmap_regions_t *r, const mb_hit_t *h)
 {
 	const mb_unmap_ctg_t *ctg;
-	int32_t lo, hi, mid, i, max_depth = 0;
+	int32_t lo, hi, mid, end, i, max_depth = 0;
 	if (r == 0 || h == 0 || h->tid < 0 || h->tid >= r->n_ctg || h->te <= h->ts) return 0;
 	ctg = &r->ctg[h->tid];
 	if (ctg->n == 0) return 0;
 	lo = 0, hi = ctg->n;
 	while (lo < hi) {
 		mid = (lo + hi) >> 1;
-		if (ctg->a[mid].en > h->ts) hi = mid;
+		if (ctg->a[mid].st < h->te) lo = mid + 1;
+		else hi = mid;
+	}
+	end = lo;
+	lo = 0, hi = end;
+	while (lo < hi) {
+		mid = (lo + hi) >> 1;
+		if (ctg->a[mid].max_en > h->ts) hi = mid;
 		else lo = mid + 1;
 	}
-	for (i = lo; i < ctg->n && ctg->a[i].st < h->te; ++i)
+	for (i = lo; i < end; ++i)
 		if (ctg->a[i].en > h->ts && max_depth < ctg->a[i].max_depth)
 			max_depth = ctg->a[i].max_depth;
 	return max_depth;

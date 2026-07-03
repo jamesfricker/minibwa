@@ -1,5 +1,5 @@
-[M::main_map::0.014*1.41] index loaded
-[M::worker_pipeline::0.015*1.39] mapped 690 bp in 5 sequences
+[M::main_map::0.015*1.48] index loaded
+[M::worker_pipeline::0.015*1.46] mapped 690 bp in 5 sequences
 [M::main] Version: 0.3-r396-dirty
 [M::main] CMD: ./minibwa map -t 1 -x sr .context/human-benchmark/index .context/human-benchmark/synthetic-human.fq
-[M::main] Real time: 0.015 sec; CPU: 0.021 sec; Peak RSS: 0.034 GB
+[M::main] Real time: 0.016 sec; CPU: 0.023 sec; Peak RSS: 0.034 GB
