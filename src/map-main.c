@@ -502,7 +502,15 @@ int main_map(int argc, char *argv[])
 			fn_sv_blacklist = o.arg;
 			mo.flag |= MB_F_HMF_SV_BLACKLIST;
 		} else if (c == 315) { // --hmf-sv-blacklist-mapq
-			mo.sv_blacklist_mapq = atoi(o.arg);
+			char *endp;
+			long v;
+			errno = 0;
+			v = strtol(o.arg, &endp, 10);
+			if (errno || endp == o.arg || *endp != 0 || v < 0 || v > 255) {
+				fprintf(stderr, "ERROR: invalid --hmf-sv-blacklist-mapq value '%s' (expected integer in [0,255])\n", o.arg);
+				return 1;
+			}
+			mo.sv_blacklist_mapq = (int32_t)v;
 		} else if (c == 601) { // --dbg-aln-seq
 			kom_dbg_flag |= MB_DBG_ALN_SEQ;
 		} else if (c == 602) { // --dbg-anchor
