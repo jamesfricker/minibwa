@@ -56,29 +56,29 @@ GPL_OBJS := $(patsubst %.c,$(OBJ_DIR)/%.o,$(GPL_SRCS))
 MIMALLOC_OBJ := $(patsubst %.c,$(OBJ_DIR)/%.o,$(MIMALLOC_SRC))
 
 ifneq ($(asan),)
-	CFLAGS += -fsanitize=address
-	LDFLAGS += -fsanitize=address
-	LDLIBS += -ldl
+	override CFLAGS += -fsanitize=address
+	override LDFLAGS += -fsanitize=address
+	override LDLIBS += -ldl
 endif
 
 ifeq ($(omp),1)
-	CPPFLAGS += -DLIBSAIS_OPENMP
-	CFLAGS += -fopenmp
-	LDLIBS += -fopenmp
+	override CPPFLAGS += -DLIBSAIS_OPENMP
+	override CFLAGS += -fopenmp
+	override LDLIBS += -fopenmp
 endif
 
 ifneq ($(gpl),0)
 	APP_OBJS += $(GPL_OBJS)
-	CPPFLAGS += -DUSE_GPL
+	override CPPFLAGS += -DUSE_GPL
 endif
 
 ifeq ($(mimalloc),0)
 	MIMALLOC_OBJ :=
-	CPPFLAGS += -DHAVE_KALLOC
+	override CPPFLAGS += -DHAVE_KALLOC
 endif
 
 ifeq ($(ARCH),x86_64)
-	CFLAGS += -msse4.2 -mpopcnt
+	override CFLAGS += -msse4.2 -mpopcnt
 endif
 
 DEPS := $(LIB_OBJS:.o=.d) $(APP_OBJS:.o=.d) $(MAIN_OBJ:.o=.d) $(MIMALLOC_OBJ:.o=.d)
