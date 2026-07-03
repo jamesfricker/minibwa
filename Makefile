@@ -97,6 +97,9 @@ examples: $(LIB_TARGET)
 	$(MAKE) -C examples
 
 test: $(PROG)
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) tests/test_sam_alt_hla.c $(LIB_TARGET) -o $(BUILD_DIR)/test_sam_alt_hla $(LDLIBS)
+	$(BUILD_DIR)/test_sam_alt_hla
 	./bench/run-human-benchmark.py --out-dir .context/human-benchmark
 
 $(OBJ_DIR)/third_party/mimalloc/static.o: third_party/mimalloc/static.c

@@ -165,6 +165,97 @@ static inline const mb_hit_t *get_sam_pri(int n_hit, const mb_hit_t *hit)
 	return NULL;
 }
 
+enum {
+	MB_CTG_OTHER = 0,
+	MB_CTG_PRIMARY = 1,
+	MB_CTG_ALT = 2,
+	MB_CTG_HLA = 3
+};
+
+static int ascii_lower(int c)
+{
+	return c >= 'A' && c <= 'Z'? c + ('a' - 'A') : c;
+}
+
+static int str_contains_ci(const char *s, const char *needle)
+{
+	int i;
+	if (s == 0 || needle == 0 || needle[0] == 0) return 0;
+	for (; *s; ++s) {
+		for (i = 0; needle[i]; ++i)
+			if (s[i] == 0 || ascii_lower((unsigned char)s[i]) != ascii_lower((unsigned char)needle[i]))
+				break;
+		if (needle[i] == 0) return 1;
+	}
+	return 0;
+}
+
+static int is_human_primary_name(const char *name)
+{
+	const char *p = name;
+	int n = 0;
+	if (p == 0) return 0;
+	if (ascii_lower((unsigned char)p[0]) == 'c' &&
+		ascii_lower((unsigned char)p[1]) == 'h' &&
+		ascii_lower((unsigned char)p[2]) == 'r')
+		p += 3;
+	if (p[0] >= '1' && p[0] <= '9') {
+		for (; *p >= '0' && *p <= '9'; ++p)
+			n = n * 10 + (*p - '0');
+		return *p == 0 && n >= 1 && n <= 22;
+	}
+	if ((p[0] == 'X' || p[0] == 'x' || p[0] == 'Y' || p[0] == 'y' || p[0] == 'M' || p[0] == 'm') && p[1] == 0)
+		return 1;
+	if ((p[0] == 'M' || p[0] == 'm') && (p[1] == 'T' || p[1] == 't') && p[2] == 0)
+		return 1;
+	return 0;
+}
+
+static int human_ctg_class(const l2b_t *l2b, int64_t tid)
+{
+	const char *name, *comm;
+	if (l2b == 0 || tid < 0 || tid >= (int64_t)l2b->n_ctg) return MB_CTG_OTHER;
+	name = l2b->ctg[tid].name;
+	comm = l2b->ctg[tid].comm;
+	if (str_contains_ci(name, "hla") || str_contains_ci(comm, "hla") ||
+		str_contains_ci(name, "mhc") || str_contains_ci(comm, "mhc"))
+		return MB_CTG_HLA;
+	if (str_contains_ci(name, "_alt") || str_contains_ci(comm, "alternate locus") ||
+		str_contains_ci(comm, "alt-scaffold") || str_contains_ci(comm, "alt scaffold"))
+		return MB_CTG_ALT;
+	return is_human_primary_name(name)? MB_CTG_PRIMARY : MB_CTG_OTHER;
+}
+
+static int same_query_locus(const mb_hit_t *a, const mb_hit_t *b)
+{
+	int st = a->qs > b->qs? a->qs : b->qs;
+	int en = a->qe < b->qe? a->qe : b->qe;
+	int al = a->qe - a->qs, bl = b->qe - b->qs;
+	int min_l = al < bl? al : bl;
+	return min_l > 0 && en > st && (en - st) * 5 >= min_l * 4;
+}
+
+static int human_alt_competitor(const l2b_t *l2b, const mb_hit_t *a, const mb_hit_t *b)
+{
+	int ac, bc;
+	if (a == b || b->p == 0 || !same_query_locus(a, b)) return 0;
+	ac = human_ctg_class(l2b, a->tid);
+	bc = human_ctg_class(l2b, b->tid);
+	if ((ac == MB_CTG_PRIMARY || ac == MB_CTG_ALT || ac == MB_CTG_HLA) &&
+		(bc == MB_CTG_PRIMARY || bc == MB_CTG_ALT || bc == MB_CTG_HLA) &&
+		(ac != MB_CTG_PRIMARY || bc != MB_CTG_PRIMARY))
+		return 1;
+	return 0;
+}
+
+static int sam_xa_candidate(const l2b_t *l2b, const mb_hit_t *r, const mb_hit_t *q, int r_i, int q_i, const mb_opt_t *opt)
+{
+	if (q_i == r_i || q->p == 0 || q->p->dp_max < (double)opt->xa_ratio * r->p->dp_max)
+		return 0;
+	if (q->parent == r_i) return 1;
+	return (opt->flag & MB_F_HUMAN_ALT) && human_alt_competitor(l2b, r, q);
+}
+
 static void write_sam_cigar(kstring_t *s, int sam_flag, int in_tag, int qlen, const mb_hit_t *r, int64_t opt_flag)
 {
 	if (r->p == 0) {
@@ -297,9 +388,10 @@ void mb_fmt_sam(void *km, kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, i
 		}
 		if (r->p->cs) kom_sprintf_lite(s, "\t%s", (char*)&r->p->cigar[r->p->n_cigar]);
 		if (r->parent == r->id && r->p && n_h > 1 && h && r >= h && r - h < n_h) { // supplementary aln may exist
-			int i, n_sa = 0; // n_sa: number of SA fields
+			int i, r_i = r - h, n_sa = 0; // n_sa: number of SA fields
 			for (i = 0; i < n_h; ++i)
-				if (i != r - h && h[i].parent == h[i].id && h[i].p)
+				if (i != r_i && h[i].parent == h[i].id && h[i].p &&
+					!(opt->xa_max > 0 && (opt->flag & MB_F_HUMAN_ALT) && human_alt_competitor(l2b, r, &h[i])))
 					++n_sa;
 			if (n_sa > 0) {
 				kom_sprintf_lite(s, "\tSA:Z:");
@@ -307,6 +399,7 @@ void mb_fmt_sam(void *km, kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, i
 					const mb_hit_t *q = &h[i];
 					int l_M, l_I = 0, l_D = 0, clip5 = 0, clip3 = 0;
 					if (r == q || q->parent != q->id || q->p == 0) continue;
+					if (opt->xa_max > 0 && (opt->flag & MB_F_HUMAN_ALT) && human_alt_competitor(l2b, r, q)) continue;
 					if (q->qe - q->qs < q->te - q->ts) l_M = q->qe - q->qs, l_D = (q->te - q->ts) - l_M;
 					else l_M = q->te - q->ts, l_I = (q->qe - q->qs) - l_M;
 					clip5 = q->rev? t->l_seq - q->qe : q->qs;
@@ -323,14 +416,14 @@ void mb_fmt_sam(void *km, kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, i
 			if (opt->xa_max > 0) {
 				int i, n_xa = 0;
 				for (i = 0; i < n_h; ++i)
-					if (i != r - h && h[i].parent == r - h && h[i].p->dp_max >= (double)opt->xa_ratio * r->p->dp_max)
+					if (sam_xa_candidate(l2b, r, &h[i], r_i, i, opt))
 						++n_xa;
 				if (n_xa > 0) kom_sprintf_lite(s, "\tn2:i:%d", n_xa);
 				if (n_xa > 0 && n_xa <= opt->xa_max) {
 					kom_sprintf_lite(s, "\tXA:Z:");
 					for (i = 0; i < n_h; ++i) {
 						const mb_hit_t *q = &h[i];
-						if (i != r - h && q->parent == r - h && q->p->dp_max >= (double)opt->xa_ratio * r->p->dp_max) {
+						if (sam_xa_candidate(l2b, r, q, r_i, i, opt)) {
 							kom_sprintf_lite(s, "%s,%c%d,", l2b->ctg[q->tid].name, "+-"[q->rev], q->ts+1);
 							write_sam_cigar(s, 0, 0, t->l_seq, q, opt->flag);
 							kom_sprintf_lite(s, ",%d;", q->blen - q->mlen + q->p->n_ambi);
