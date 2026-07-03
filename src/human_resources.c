@@ -404,7 +404,7 @@ static int mb_hr_walk_dir(const char *dir, int (*cb)(const char*, const char*, v
 		struct stat st;
 		if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0) continue;
 		snprintf(path, sizeof(path), "%s/%s", dir, de->d_name);
-		if (stat(path, &st) != 0) { closedir(dp); return -1; }
+		if (lstat(path, &st) != 0) continue;
 		if (S_ISDIR(st.st_mode)) {
 			if (mb_hr_walk_dir(path, cb, data) < 0) { closedir(dp); return -1; }
 		} else if (S_ISREG(st.st_mode)) {
