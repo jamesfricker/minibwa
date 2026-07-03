@@ -13,6 +13,107 @@ KRADIX_SORT_INIT(mb128x, mb128_t, key_128x, 8)
 #define key_64(a) (a)
 KRADIX_SORT_INIT(mb64, uint64_t, key_64, 8)
 
+typedef struct {
+	const char *ctg;
+	uint64_t st, en;
+} mb_builtin_intv_t;
+
+static const mb_builtin_intv_t grch38_problematic_intv[] = {
+	{ "chr8",  30393636,  30407636 },
+	{ "chr9",  70701717,  70737717 },
+	{ "chr11",  1945622,   2041622 },
+	{ "chr13", 86253328,  86269328 },
+	{ "chr13",111669328, 111703328 },
+	{ "chr13",111754328, 111793328 },
+	{ "chr16", 19786345,  19801345 },
+	{ "chr16", 34339345,  34500345 },
+	{ "chr16", 34867345,  34896345 },
+	{ "chr16", 34960345,  35072345 },
+	{ "chr21",  5009983,   5165983 },
+	{ "chr21",  5966983,   6160983 },
+	{ "chr21",  6426983,   6579983 },
+	{ "chr21",  6789983,   6933983 },
+	{ "chr21",  7743983,   7865983 },
+	{ "chr21", 13713983,  13718983 },
+	{ "chr21", 13752983,  13798983 },
+	{ "chr21", 34374983,  34494983 },
+	{ "chr21", 43035983,  43186983 },
+	{ "chr21", 43376983,  43570983 },
+	{ "chr21", 44095983,  44252983 },
+	{ "chr22", 18885468,  18939468 },
+	{ "chrX",  37084895,  37098895 }
+};
+
+static int intv_cmp(const void *a, const void *b)
+{
+	const l2b_intv_t *x = (const l2b_intv_t*)a, *y = (const l2b_intv_t*)b;
+	if (x->st < y->st) return -1;
+	if (x->st > y->st) return 1;
+	if (x->en < y->en) return -1;
+	if (x->en > y->en) return 1;
+	return 0;
+}
+
+static void mb_idx_clear_problematic(mb_idx_t *idx)
+{
+	free(idx->problematic);
+	idx->problematic = 0;
+	idx->n_problematic = idx->m_problematic = 0;
+}
+
+static int mb_idx_name2tid(const l2b_t *l2b, const char *name)
+{
+	uint64_t i;
+	for (i = 0; i < l2b->n_ctg; ++i)
+		if (strcmp(l2b->ctg[i].name, name) == 0)
+			return (int)i;
+	if (strncmp(name, "chr", 3) == 0) {
+		const char *no_chr = name + 3;
+		for (i = 0; i < l2b->n_ctg; ++i)
+			if (strcmp(l2b->ctg[i].name, no_chr) == 0)
+				return (int)i;
+	} else {
+		for (i = 0; i < l2b->n_ctg; ++i) {
+			const char *ctg = l2b->ctg[i].name;
+			if (strncmp(ctg, "chr", 3) == 0 && strcmp(ctg + 3, name) == 0)
+				return (int)i;
+		}
+	}
+	return -1;
+}
+
+static void mb_idx_add_problematic(mb_idx_t *idx, int32_t tid, uint64_t st, uint64_t en)
+{
+	const l2b_ctg_t *ctg;
+	if (tid < 0 || tid >= (int64_t)idx->l2b->n_ctg) return;
+	ctg = &idx->l2b->ctg[tid];
+	if (st >= ctg->len) return;
+	if (en > ctg->len) en = ctg->len;
+	if (st >= en) return;
+	kom_grow(l2b_intv_t, idx->problematic, idx->n_problematic, idx->m_problematic);
+	idx->problematic[idx->n_problematic].st = ctg->off + st;
+	idx->problematic[idx->n_problematic].en = ctg->off + en;
+	++idx->n_problematic;
+}
+
+static void mb_idx_finish_problematic(mb_idx_t *idx)
+{
+	uint64_t i, n;
+	if (idx->n_problematic == 0) return;
+	qsort(idx->problematic, idx->n_problematic, sizeof(*idx->problematic), intv_cmp);
+	for (i = 1, n = 0; i < idx->n_problematic; ++i) {
+		l2b_intv_t *last = &idx->problematic[n];
+		if (idx->problematic[i].st <= last->en) {
+			if (last->en < idx->problematic[i].en)
+				last->en = idx->problematic[i].en;
+		} else {
+			++n;
+			if (n != i) idx->problematic[n] = idx->problematic[i];
+		}
+	}
+	idx->n_problematic = n + 1;
+}
+
 /*****************
  * Index loading *
  *****************/
@@ -49,7 +150,85 @@ void mb_idx_destroy(mb_idx_t *idx)
 	mb_idx_clear_sv_blacklist(idx);
 	mb_bwt_destroy(idx->bwt);
 	l2b_destroy(idx->l2b);
+	free(idx->problematic);
 	free(idx);
+}
+
+int mb_idx_set_grch38_problematic(mb_idx_t *idx)
+{
+	uint64_t i;
+	if (idx == 0 || idx->l2b == 0) return -1;
+	mb_idx_clear_problematic(idx);
+	for (i = 0; i < sizeof(grch38_problematic_intv) / sizeof(grch38_problematic_intv[0]); ++i) {
+		const mb_builtin_intv_t *r = &grch38_problematic_intv[i];
+		int32_t tid = mb_idx_name2tid(idx->l2b, r->ctg);
+		if (tid >= 0) mb_idx_add_problematic(idx, tid, r->st, r->en);
+	}
+	mb_idx_finish_problematic(idx);
+	return idx->n_problematic > 0? 0 : -1;
+}
+
+int mb_idx_load_problematic_bed(mb_idx_t *idx, const char *fn)
+{
+	FILE *fp;
+	char line[4096];
+	if (idx == 0 || idx->l2b == 0 || fn == 0) return -1;
+	fp = strcmp(fn, "-") == 0? stdin : fopen(fn, "r");
+	if (fp == 0) return -1;
+	mb_idx_clear_problematic(idx);
+	while (fgets(line, sizeof(line), fp) != 0) {
+		char *ctg, *st_s, *en_s, *p = line;
+		uint64_t st, en;
+		int32_t tid;
+		while (*p == ' ' || *p == '\t') ++p;
+		if (*p == 0 || *p == '\n' || *p == '#' || strncmp(p, "track", 5) == 0 || strncmp(p, "browser", 7) == 0)
+			continue;
+		ctg = strtok(p, " \t\r\n");
+		st_s = strtok(0, " \t\r\n");
+		en_s = strtok(0, " \t\r\n");
+		if (ctg == 0 || st_s == 0 || en_s == 0) continue;
+		st = strtoull(st_s, 0, 10);
+		en = strtoull(en_s, 0, 10);
+		if (st >= en) continue;
+		tid = mb_idx_name2tid(idx->l2b, ctg);
+		if (tid >= 0) mb_idx_add_problematic(idx, tid, st, en);
+	}
+	if (fp != stdin) fclose(fp);
+	mb_idx_finish_problematic(idx);
+	return idx->n_problematic > 0? 0 : -1;
+}
+
+static int mb_hit_overlap_problematic(const mb_idx_t *idx, const mb_hit_t *r)
+{
+	uint64_t st, en, lo, hi;
+	const l2b_intv_t *a;
+	if (idx == 0 || idx->n_problematic == 0 || r == 0 || r->tid < 0 || r->tid >= (int64_t)idx->l2b->n_ctg)
+		return 0;
+	st = idx->l2b->ctg[r->tid].off + r->ts;
+	en = idx->l2b->ctg[r->tid].off + r->te;
+	lo = 0, hi = idx->n_problematic;
+	while (lo < hi) {
+		uint64_t mid = (lo + hi) >> 1;
+		if (idx->problematic[mid].en <= st) lo = mid + 1;
+		else hi = mid;
+	}
+	a = lo < idx->n_problematic? &idx->problematic[lo] : 0;
+	return a && a->st < en && st < a->en;
+}
+
+void mb_apply_problematic_mask(const mb_idx_t *idx, int32_t n_regs, mb_hit_t *regs, int32_t mapq_cap)
+{
+	int32_t i;
+	if (idx == 0 || idx->n_problematic == 0 || regs == 0) return;
+	if (mapq_cap < 0) return;
+	if (mapq_cap > 60) mapq_cap = 60;
+	for (i = 0; i < n_regs; ++i) {
+		mb_hit_t *r = &regs[i];
+		if (mb_hit_overlap_problematic(idx, r)) {
+			r->problematic = 1;
+			if (r->mapq > mapq_cap) r->mapq = mapq_cap;
+		}
+	}
 }
 
 const char *mb_idx_ctg_name(const mb_idx_t *idx, int32_t tid)
@@ -658,6 +837,8 @@ static mb_hit_t *mb_map_sai_core(const mb_opt_t *opt, const mb_idx_t *idx, int64
 	}
 	mb_set_mapq(b->km, idx->l2b, qlen, n_hit, hit, opt->min_chain_score, opt->a, is_sr, opt->max_sr_len, opt->mask_level);
 	mb_apply_sv_blacklist(idx, opt, n_hit, hit);
+	if (opt->flag & MB_F_PROBLEMATIC_MASK)
+		mb_apply_problematic_mask(idx, n_hit, hit, opt->problematic_mapq_cap);
 
 	// clean up
 	kfree(b->km, a);
@@ -778,6 +959,10 @@ mb_hit_t **mb_map_batch(const mb_opt_t *opt, const mb_idx_t *idx, int32_t n_seq,
 			mb_pair(km, opt, idx->l2b, &n_hit[i], &hit[i], pes, len2, seq2);
 			mb_apply_sv_blacklist(idx, opt, n_hit[i], hit[i]);
 			mb_apply_sv_blacklist(idx, opt, n_hit[i+1], hit[i+1]);
+			if (opt->flag & MB_F_PROBLEMATIC_MASK) {
+				mb_apply_problematic_mask(idx, n_hit[i], hit[i], opt->problematic_mapq_cap);
+				mb_apply_problematic_mask(idx, n_hit[i+1], hit[i+1], opt->problematic_mapq_cap);
+			}
 		}
 	}
 

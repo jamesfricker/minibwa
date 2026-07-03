@@ -125,6 +125,12 @@ entirely within a soft-masked interval are dropped during seeding, and the
 mapping quality of an alignment is capped at 10 when most of its reference span
 is soft-masked. References with no soft-masked bases are unaffected.
 
+For GRCh38, `--grch38-mask` caps and tags alignments that overlap the compact
+GRC problematic/false-duplication exclusion mask bundled with minibwa. Use
+`--problematic-mapq-cap=INT` to change the default cap of 10. You can also
+provide a BED file explicitly with `--problematic-bed=FILE`; overlapping SAM/PAF
+records get the local tag `gm:Z:GRC` and remain in the output.
+
 #### Mapping with legacy bwa-mem CLI
 
 Minibwa also provides legacy bwa-mem command-line interface (CLI) via the `mem` subcommand.
