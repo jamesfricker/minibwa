@@ -135,7 +135,32 @@ const char *mb_idx_ctg_name(const mb_idx_t *idx, int32_t tid);
 int64_t mb_idx_ctg_len(const mb_idx_t *idx, int32_t tid);
 int64_t mb_idx_load_sv_blacklist(mb_idx_t *idx, const char *fn); // load HMF SV-prep blacklist BED (0-based half-open); returns intervals read, or -1 on open failure
 void mb_idx_clear_sv_blacklist(mb_idx_t *idx); // free the HMF SV-prep blacklist attached to an index
+
+/**
+ * Load the built-in GRCh38 GRC problematic/false-duplication mask into the index
+ *
+ * Hits overlapping these intervals get their MAPQ capped and are tagged with
+ * gm:Z:GRC when MB_F_PROBLEMATIC_MASK is set in mb_opt_t::flag. Intervals whose
+ * contig is absent from the index are skipped.
+ *
+ * @param idx        index
+ *
+ * @return 0 if at least one interval was loaded, negative on error
+ */
 int mb_idx_set_grch38_problematic(mb_idx_t *idx);
+
+/**
+ * Load problematic-region intervals from a BED file into the index
+ *
+ * Works like mb_idx_set_grch38_problematic() but reads 0-based half-open
+ * intervals from a BED file ("-" for stdin); track/browser/comment lines and
+ * intervals whose contig is absent from the index are skipped.
+ *
+ * @param idx        index
+ * @param fn         BED file name, or "-" for stdin
+ *
+ * @return 0 if at least one interval was loaded, negative on error
+ */
 int mb_idx_load_problematic_bed(mb_idx_t *idx, const char *fn);
 
 void mb_opt_init(mb_opt_t *opt);
