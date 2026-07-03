@@ -27,6 +27,10 @@ The default run builds a small synthetic reference with:
 - a Decoy Sequence (`hs37d5_decoy`);
 - duplicated low-mappability sequence shared by `chr1` and `chr6`.
 
+It also generates matching BED stratifications for GIAB-style high-confidence,
+low-mappability, HLA, and blacklist intervals, and reports per-stratification
+primary counts alongside the other metrics.
+
 The harness writes:
 
 - `.context/human-benchmark/aln.sam`
@@ -58,6 +62,7 @@ make
   --no-validate
 ```
 
+Pass `--reads reads.fq` instead of `--reads1`/`--reads2` for single-end inputs.
 Use `--index-prefix /path/to/existing/prefix` to reuse an existing `.mbw`/`.l2b`
 index. Add `--expect-primary-tsv expected.tsv` when a targeted truth set has
 known placements. The TSV format is:
