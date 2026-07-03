@@ -401,6 +401,20 @@ tag as an alternative placement rather than as a split-alignment
 tag. Exact-score ties are also resolved toward primary human coordinates before
 ALT, HLA, decoy, random, unplaced, and viral/phix contigs.
 .TP
+.BR --hla-policy = \fISTR
+Set the HLA primary-selection policy.
+.B main-contig
+breaks exact score ties between an HLA allele/ALT contig and the main chr6
+placement by choosing chr6 as primary;
+.B allele-contig
+preserves allele-contig primary output; and
+.B off
+disables HLA primary promotion. The
+.B hmf-grch38
+human profile uses
+.B main-contig
+unless this option is set explicitly.
+.TP
 .B --human-tags
 Output optional human reference annotations on mapped SAM and PAF records:
 .BR zc ,
@@ -418,6 +432,11 @@ which discovers the standard Hartwig Medical Foundation (HMF)
 resource (searching the working directory,
 .BR MINIBWA_HMF_RESOURCES / HMF_RESOURCES / HMF_RESOURCE_DIR ,
 and the index-prefix directory) and annotates hits overlapping those regions.
+It also enables the HMF-compatible HLA
+.B main-contig
+policy unless
+.B --hla-policy
+is set explicitly.
 Use
 .B --unmap-regions
 to point at the file explicitly when auto-discovery fails []

@@ -46,6 +46,14 @@ static int has_tag_value(const char *sam, const char *needle)
 	return strstr(sam, needle) != 0;
 }
 
+static int primary_tid(int n, const mb_hit_t *h)
+{
+	int i;
+	for (i = 0; i < n; ++i)
+		if (h[i].parent == h[i].id) return (int)h[i].tid;
+	return -1;
+}
+
 int main(void)
 {
 	l2b_t l2b;
@@ -104,6 +112,42 @@ int main(void)
 	assert(!has_tag_value(out.s, "\tXA:Z:"));
 	assert(has_tag_value(out.s, "SA:Z:chr6_GL000250v2_alt"));
 	assert(has_tag_value(out.s, "HLA-A*01:01"));
+
+	{
+		mb_hit_t h[2];
+		int promoted;
+		h[0] = make_hit(0, 0, 1, 0, 30); /* chr6 HLA-region placement as secondary */
+		h[1] = make_hit(2, 1, 1, 1, 30); /* HLA allele contig currently primary */
+		opt.hla_policy = MB_HLA_POLICY_MAIN_CONTIG;
+		promoted = mb_apply_hla_primary(&opt, &l2b, 2, h);
+		assert(promoted == 1);
+		assert(primary_tid(2, h) == 0);
+		free_hits(h, 2);
+	}
+
+	{
+		mb_hit_t h[2];
+		int promoted;
+		h[0] = make_hit(0, 0, 1, 0, 30);
+		h[1] = make_hit(2, 1, 1, 1, 30);
+		opt.hla_policy = MB_HLA_POLICY_ALLELE_CONTIG;
+		promoted = mb_apply_hla_primary(&opt, &l2b, 2, h);
+		assert(promoted == 0);
+		assert(primary_tid(2, h) == 2);
+		free_hits(h, 2);
+	}
+
+	{
+		mb_hit_t h[2];
+		int promoted;
+		h[0] = make_hit(0, 0, 1, 0, 29);
+		h[1] = make_hit(2, 1, 1, 1, 30);
+		opt.hla_policy = MB_HLA_POLICY_MAIN_CONTIG;
+		promoted = mb_apply_hla_primary(&opt, &l2b, 2, h);
+		assert(promoted == 0);
+		assert(primary_tid(2, h) == 2);
+		free_hits(h, 2);
+	}
 
 	free(out.s);
 	free_hits(hits, 4);

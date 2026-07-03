@@ -29,6 +29,10 @@
 #define MB_F_HUMAN_TAGS       (0x200000LL)  // write human contig/confidence tags
 #define MB_F_NUMT             (0x400000LL)  // chrM-vs-nuclear ambiguity policy
 
+#define MB_HLA_POLICY_OFF           0 // do not alter HLA allele-contig primaries
+#define MB_HLA_POLICY_MAIN_CONTIG   1 // exact HLA allele-contig ties prefer chr6
+#define MB_HLA_POLICY_ALLELE_CONTIG 2 // preserve allele-contig primary output
+
 #define MB_CIGAR_MATCH      0
 #define MB_CIGAR_INS        1
 #define MB_CIGAR_DEL        2
@@ -89,6 +93,7 @@ typedef struct {
 	int32_t xa_max;
 	int32_t numt_score_diff; // max chrM-vs-nuclear score gap treated as ambiguous (MB_F_NUMT)
 	int32_t numt_mapq_cap;   // mapQ cap for ambiguous chrM-vs-nuclear hits (MB_F_NUMT)
+	int32_t hla_policy;      // MB_HLA_POLICY_* primary-selection policy
 	float xa_ratio;
 	int64_t mb_size;  // mini-batch size
 	int64_t max_mb_size;

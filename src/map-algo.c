@@ -834,9 +834,9 @@ void mb_set_mapq(void *km, const l2b_t *l2b, int32_t qlen, int n_regs, mb_hit_t 
 	mb_set_inv_mapq(km, n_regs, regs);
 }
 
-/**********************
- * chrM/NUMT policy   *
- **********************/
+/***********************
+ * Human primary policy *
+ ***********************/
 
 static int mb_is_chrm_name(const char *s)
 {
@@ -853,7 +853,39 @@ static int mb_is_chrm_name(const char *s)
 	return 0;
 }
 
-static inline int mb_hit_numt_score(const mb_hit_t *r)
+static int mb_is_chr6_name(const char *s)
+{
+	const char *p;
+	if (s == 0) return 0;
+	p = s;
+	if (p[0] && p[1] && p[2] &&
+		mb_ascii_lower((unsigned char)p[0]) == 'c' &&
+		mb_ascii_lower((unsigned char)p[1]) == 'h' &&
+		mb_ascii_lower((unsigned char)p[2]) == 'r')
+		p += 3;
+	if (strcmp(p, "6") == 0) return 1;
+	if (strncmp(s, "NC_000006", 9) == 0 && (s[9] == 0 || s[9] == '.')) return 1;
+	return 0;
+}
+
+static int mb_is_hla_allele_contig(const l2b_t *l2b, int64_t tid)
+{
+	const char *name, *comm;
+	if (l2b == 0 || tid < 0 || (uint64_t)tid >= l2b->n_ctg) return 0;
+	name = l2b->ctg[tid].name;
+	comm = l2b->ctg[tid].comm;
+	if (mb_is_chr6_name(name)) return 0;
+	return mb_str_contains_ci(name, "hla") || mb_str_contains_ci(comm, "hla") ||
+		   mb_str_contains_ci(name, "mhc") || mb_str_contains_ci(comm, "mhc");
+}
+
+static int mb_is_hla_main_contig(const l2b_t *l2b, int64_t tid)
+{
+	if (l2b == 0 || tid < 0 || (uint64_t)tid >= l2b->n_ctg) return 0;
+	return mb_is_chr6_name(l2b->ctg[tid].name);
+}
+
+static inline int mb_hit_policy_score(const mb_hit_t *r)
 {
 	return r->p? r->p->dp_max : r->score;
 }
@@ -867,10 +899,10 @@ static int mb_hit_query_similar(const mb_hit_t *a, const mb_hit_t *b)
 	return min > 0 && ol * 10 >= min * 8;
 }
 
-static void mb_promote_numt_hit(int32_t n, mb_hit_t *r, int32_t old_i, int32_t new_i)
+static void mb_promote_policy_hit(int32_t n, mb_hit_t *r, int32_t old_i, int32_t new_i)
 {
 	int32_t i, old_id = r[old_i].id, new_id = r[new_i].id;
-	int32_t old_dp_sc = mb_hit_numt_score(&r[old_i]), new_dp_sc = mb_hit_numt_score(&r[new_i]);
+	int32_t old_dp_sc = mb_hit_policy_score(&r[old_i]), new_dp_sc = mb_hit_policy_score(&r[new_i]);
 	if (old_i == new_i || old_id == new_id) return;
 	r[new_i].parent = new_id;
 	r[new_i].n_sub = r[old_i].n_sub + 1;
@@ -884,6 +916,26 @@ static void mb_promote_numt_hit(int32_t n, mb_hit_t *r, int32_t old_i, int32_t n
 	r[old_i].subsc = r[old_i].subsc > r[new_i].score? r[old_i].subsc : r[new_i].score;
 	if (r[old_i].p)
 		r[old_i].p->dp_max2 = r[old_i].p->dp_max2 > new_dp_sc? r[old_i].p->dp_max2 : new_dp_sc;
+}
+
+int mb_apply_hla_primary(const mb_opt_t *opt, const l2b_t *l2b, int32_t n, mb_hit_t *r)
+{
+	int32_t i, j, n_promoted = 0;
+	if (opt->hla_policy != MB_HLA_POLICY_MAIN_CONTIG || n <= 1) return 0;
+	for (i = 0; i < n; ++i) {
+		if (!mb_is_hla_allele_contig(l2b, r[i].tid) || r[i].parent != r[i].id) continue;
+		for (j = 0; j < n; ++j) {
+			if (i == j || r[j].parent != r[i].id) continue;
+			if (!mb_is_hla_main_contig(l2b, r[j].tid)) continue;
+			if (!mb_hit_query_similar(&r[i], &r[j])) continue;
+			if (mb_hit_policy_score(&r[i]) == mb_hit_policy_score(&r[j])) {
+				mb_promote_policy_hit(n, r, i, j);
+				++n_promoted;
+				break;
+			}
+		}
+	}
+	return n_promoted;
 }
 
 int mb_apply_numt_primary(const mb_opt_t *opt, const l2b_t *l2b, int32_t n, mb_hit_t *r)
@@ -901,9 +953,9 @@ int mb_apply_numt_primary(const mb_opt_t *opt, const l2b_t *l2b, int32_t n, mb_h
 			if (r[j].tid < 0 || (uint64_t)r[j].tid >= l2b->n_ctg) continue;
 			if (mb_is_chrm_name(l2b->ctg[r[j].tid].name)) continue;
 			if (!mb_hit_query_similar(&r[i], &r[j])) continue;
-			diff = mb_hit_numt_score(&r[i]) - mb_hit_numt_score(&r[j]);
+			diff = mb_hit_policy_score(&r[i]) - mb_hit_policy_score(&r[j]);
 			if (diff == 0) {
-				mb_promote_numt_hit(n, r, i, j);
+				mb_promote_policy_hit(n, r, i, j);
 				++n_promoted;
 				break;
 			}
@@ -928,8 +980,8 @@ void mb_apply_numt_mapq(const mb_opt_t *opt, const l2b_t *l2b, int32_t n, mb_hit
 			if (r[j].tid < 0 || (uint64_t)r[j].tid >= l2b->n_ctg) continue;
 			if (i_mt == mb_is_chrm_name(l2b->ctg[r[j].tid].name)) continue;
 			if (!mb_hit_query_similar(&r[i], &r[j])) continue;
-			si = mb_hit_numt_score(&r[i]);
-			sj = mb_hit_numt_score(&r[j]);
+			si = mb_hit_policy_score(&r[i]);
+			sj = mb_hit_policy_score(&r[j]);
 			diff = si > sj? si - sj : sj - si;
 			if (diff <= diff_limit) {
 				r[i].numt_ambig = r[j].numt_ambig = 1;
@@ -1052,6 +1104,8 @@ static mb_hit_t *mb_map_sai_core(const mb_opt_t *opt, const mb_idx_t *idx, int64
 		mb_select_sub(b->km, opt->pri_ratio, opt->min_len * 2, opt->best_n, &n_hit, hit);
 	}
 	mb_apply_numt_primary(opt, idx->l2b, n_hit, hit);
+	if (opt->hla_policy == MB_HLA_POLICY_MAIN_CONTIG)
+		mb_apply_hla_primary(opt, idx->l2b, n_hit, hit);
 	mb_set_sam_pri(n_hit, hit, !!(opt->flag & MB_F_PRIMARY5));
 	for (i = 0; i < n_hit; ++i) {
 		hit[i].frac_high = (int32_t)(255. * hi_cov / qlen);

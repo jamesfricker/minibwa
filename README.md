@@ -124,6 +124,7 @@ minibwa map --meth ref.fa read1.fq read2.fq # map BS-seq reads; requiring "index
 minibwa map --human ref.fa read1.fq read2.fq # ALT/HLA-aware SAM XA/SA tags
 minibwa map --human-tags ref.fa read1.fq read2.fq # add zc/zm/zh human tags
 minibwa map --numt ref.fa read.fq           # cap/tag ambiguous chrM-vs-nuclear hits
+minibwa map --human-profile=hmf-grch38 ref.fa read.fq # HMF human policies/resources
 ```
 Use `--single-end` (equivalent to `-P`) for R1-only or other confirmed
 single-end short-read inputs when pairing and mate rescue are not needed. This
@@ -136,6 +137,13 @@ with a primary-assembly hit at the same query locus are reported as alternative
 placements in the `XA` tag instead of split-alignment `SA` tags. Exact-score
 ties are also resolved toward primary human coordinates before ALT, HLA, decoy,
 random, unplaced, and viral/phix contigs.
+
+With `--human-profile=hmf-grch38`, minibwa enables an HMF-compatible HLA policy:
+exact score ties between an HLA allele/ALT contig and the main chr6 placement
+prefer chr6 as the primary alignment. This avoids primary HLA ALT-contig records
+that are incompatible with downstream HMF/oncoanalyser HLA typing and variant
+calling. Use `--hla-policy=allele-contig` to preserve allele-contig primary
+output; stronger allele-contig alignments are not demoted by the default policy.
 
 With `--human-tags`, minibwa adds optional human annotations to each mapped SAM
 and PAF record: `zc:Z` gives the contig class inferred from the contig name
@@ -186,10 +194,11 @@ Minibwa can annotate hits that fall inside the Hartwig Medical Foundation (HMF)
 minibwa map --human-profile=hmf-grch38 ref.fa read1.fq read2.fq   # auto-discover unmap_regions.38.tsv
 minibwa map --unmap-regions=unmap_regions.38.tsv ref.fa reads.fq  # use an explicit file
 ```
-`--human-profile=hmf-grch38` looks for the standard `unmap_regions.38.tsv`
-resource in the working directory, in the `MINIBWA_HMF_RESOURCES`,
-`HMF_RESOURCES`, or `HMF_RESOURCE_DIR` directories, and next to the index
-prefix. Use `--unmap-regions=FILE` to point at the TSV explicitly (the file has
+`--human-profile=hmf-grch38` enables the HMF-compatible HLA primary policy and
+looks for the standard `unmap_regions.38.tsv` resource in the working directory,
+in the `MINIBWA_HMF_RESOURCES`, `HMF_RESOURCES`, or `HMF_RESOURCE_DIR`
+directories, and next to the index prefix. Use `--unmap-regions=FILE` to point
+at the TSV explicitly (the file has
 `Chromosome`, `PosStart`, `PosEnd`, and `MaxDepth` columns with 1-based
 inclusive coordinates). Hits overlapping an unmap region are tagged with
 `ur:Z:unmap` and `ud:i:<depth>` (the maximum depth of the overlapping regions)
