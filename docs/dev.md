@@ -114,6 +114,14 @@ Similarity to minimap2:
    bases. This mode cannot be combined with the BWA pac output (`fa2bit -p`),
    which has no room to store the flag.
 
+ * With `map --human` (`MB_F_HUMAN_ALT`), minibwa makes the SAM `XA`/`SA` tags
+   aware of human ALT/HLA contigs and, on exact-score ties, reorders competing
+   hits toward primary human coordinates (`mb_human_sort_ties`). Contigs are
+   ranked by `mb_human_contig_rank` as primary (chr1-22, chrX/Y/M, chrMT) before
+   ALT, HLA, decoy/random/unplaced, and viral/phix contigs; hits with different
+   scores keep their score order. The policy is opt-in, so default behavior is
+   unchanged.
+
  * With the optional `--numt` policy (`MB_F_NUMT`), minibwa handles reads that
    compete between chrM and nuclear contigs deterministically
    (`mb_apply_numt_primary`, `mb_apply_numt_mapq`). Exact score ties prefer the
