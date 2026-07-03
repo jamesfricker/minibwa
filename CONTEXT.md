@@ -159,7 +159,7 @@ The pairwise mapping output format used for long-read or lightweight mapping wor
 _Avoid_: tab output
 
 **Alignment Tag**:
-An optional SAM or PAF annotation derived from the Hit and Base Alignment, such as `cs`, `ds`, `MD`, or `XA`.
+An optional SAM or PAF annotation derived from the Hit and Base Alignment, such as `cs`, `ds`, `MD`, or `XA`. The `gm:Z:GRC` tag is a related annotation that instead marks a Hit overlapping a problematic/false-duplication mask interval.
 _Avoid_: extra field
 
 ### Paired-End and Methylation

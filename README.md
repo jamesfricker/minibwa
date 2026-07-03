@@ -143,7 +143,8 @@ Minibwa provides basic APIs for loading index and aligning reads.
 [examples/ex-one.c](examples/ex-one.c) shows an example to align each read
 independently; [examples/ex-batch.c](examples/ex-batch.c) aligns multiple reads
 in batch, which is faster and also supports paired-end mapping. Run `make
-examples` to build both examples.
+examples` to build both examples. Run `make test` to build minibwa and run the
+`tests/` shell tests, including the problematic-region mask regression.
 [docs/dev.md](docs/dev.md) explains how minibwa differs from BWA-MEM and minimap2.
 
 ### Project layout
