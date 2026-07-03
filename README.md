@@ -119,6 +119,20 @@ Project-owned implementation lives in [src](src), public headers in
 examples in [examples](examples), test data in [tests/data](tests/data), and
 paper/manpage sources in [docs](docs).
 
+### Benchmarking
+
+The [bench/](bench/) directory contains helper scripts for measuring mapping
+performance. `bench/run-local-bench.sh [out.tsv]` builds minibwa, times indexing,
+paired-end mapping, and the `bench` subcommand, then writes a TSV of timings
+(default `.context/local-bench.tsv`). It uses the bundled `tests/data` inputs by
+default; set `REF_FASTA`, `READ1`, `READ2`, or `BENCH_ITERATIONS` to benchmark
+other data.
+`bench/run-remote-bench.sh <ssh-host>` copies the source tree to a remote SSH
+host, rebuilds there, and optionally times the `bench` subcommand when
+`BENCH_INDEX` points at a remote `.mbw` index. `REMOTE_BASE`, `REMOTE_WORK`,
+`BENCH_ITERATIONS`, and `LOCAL_LOG` customize paths and run size; logs are
+written under `.context/` by default.
+
 ## License
 
 Minibwa is distributed under the MIT license. It also incorporates source code

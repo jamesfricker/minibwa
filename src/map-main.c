@@ -193,8 +193,9 @@ static void *worker_pipeline(void *shared, int step, void *in)
 		return in;
     } else if (step == 2) { // step 2: output
 		void *km = 0;
-        step_t *s = (step_t*)in;
+		step_t *s = (step_t*)in;
 		const mb_idx_t *idx = p->idx;
+		const size_t flush_size = 1u << 20;
 		kstring_t out = {0,0,0};
 		int64_t tot_len = 0;
 
@@ -205,7 +206,6 @@ static void *worker_pipeline(void *shared, int step, void *in)
 
 		for (k = 0; k < s->n_frag; ++k) {
 			int32_t seg_st = s->seg_off[k], seg_en = s->seg_off[k] + s->seg_cnt[k];
-			out.l = 0;
 			for (i = seg_st; i < seg_en; ++i) {
 				mb_bseq1_t *t = &s->seq[i];
 				int32_t mate_qlen = 0; // mate's l_seq for MC:Z; 0 suppresses MC/MQ
@@ -226,7 +226,6 @@ static void *worker_pipeline(void *shared, int step, void *in)
 					mb_format(km, &out, idx->l2b, t, seg_en - seg_st, &s->n_hit[seg_st], &s->hit[seg_st], -1, opt, i - seg_st, mate_qlen);
 				}
 			}
-			fwrite(out.s, 1, out.l, s->p->fp_out);
 			for (i = seg_st; i < seg_en; ++i) {
 				for (j = 0; j < s->n_hit[i]; ++j) free(s->hit[i][j].p);
 				free(s->hit[i]);
@@ -234,7 +233,12 @@ static void *worker_pipeline(void *shared, int step, void *in)
 				if (s->seq[i].qual) free(s->seq[i].qual);
 				if (s->seq[i].comment) free(s->seq[i].comment);
 			}
+			if (out.l >= flush_size) {
+				fwrite(out.s, 1, out.l, s->p->fp_out);
+				out.l = 0;
+			}
 		}
+		if (out.l > 0) fwrite(out.s, 1, out.l, s->p->fp_out);
 
 		free(out.s);
 		free(s->hit); free(s->n_hit); free(s->seq);
