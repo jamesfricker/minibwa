@@ -117,7 +117,11 @@ static void add_intv(mb_mapq_intv_v *v, int32_t st, int32_t en, int32_t cap)
 static void sort_and_merge(mb_mapq_intv_v *v)
 {
 	int32_t i, k;
-	if (v->n <= 1) return;
+	if (v->n == 0) return;
+	if (v->n == 1) {
+		v->a[0].max_en = v->a[0].en;
+		return;
+	}
 	qsort(v->a, v->n, sizeof(*v->a), cmp_intv);
 	for (i = k = 0; i < v->n; ++i) {
 		if (k > 0 && v->a[k - 1].en >= v->a[i].st && v->a[k - 1].cap == v->a[i].cap) {
