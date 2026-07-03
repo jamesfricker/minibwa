@@ -22,6 +22,7 @@ LIB_SRCS := \
 	src/bwt.c \
 	src/l2bit.c \
 	src/options.c \
+	src/unmap.c \
 	src/seed.c \
 	src/par.c \
 	src/map-algo.c \
@@ -98,12 +99,17 @@ $(PROG): $(LIB_TARGET) $(MIMALLOC_OBJ) $(APP_OBJS) $(MAIN_OBJ)
 examples: $(LIB_TARGET)
 	$(MAKE) -C examples
 
-test: $(PROG)
+test: $(PROG) $(BUILD_DIR)/test-unmap-regions
 	@mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) tests/test_sam_alt_hla.c $(LIB_TARGET) -o $(BUILD_DIR)/test_sam_alt_hla $(LDLIBS)
 	$(BUILD_DIR)/test_sam_alt_hla
+	$(BUILD_DIR)/test-unmap-regions tests/data/unmap_regions.38.tsv
 	./bench/run-human-benchmark.py --out-dir .context/human-benchmark
 	sh tests/test-problematic-mask.sh
+
+$(BUILD_DIR)/test-unmap-regions: tests/test-unmap-regions.c src/unmap.c src/kommon.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) -MMD -MP $^ -o $@ -lz -lm
 
 $(OBJ_DIR)/third_party/mimalloc/static.o: third_party/mimalloc/static.c
 	@mkdir -p $(dir $@)

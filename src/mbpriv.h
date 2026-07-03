@@ -51,6 +51,23 @@ typedef struct {
 typedef struct { uint64_t x, y; } mb128_t;
 void radix_sort_mb128x(mb128_t *beg, mb128_t *end);
 
+typedef struct {
+	int64_t st, en;
+	int32_t max_depth;
+} mb_unmap_intv_t;
+
+typedef struct {
+	int32_t n, m;
+	mb_unmap_intv_t *a;
+} mb_unmap_ctg_t;
+
+struct mb_unmap_regions_s {
+	int32_t n_ctg;
+	int32_t n_regions;
+	mb_unmap_ctg_t *ctg;
+	char *source;
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -93,6 +110,12 @@ void mb_set_mapq(void *km, const l2b_t *l2b, int32_t qlen, int n_regs, mb_hit_t 
 void mb_cap_mapq_by_mask(const l2b_t *l2b, int n_regs, mb_hit_t *regs, float mask_level);
 void mb_apply_sv_blacklist(const mb_idx_t *idx, const mb_opt_t *opt, int n_regs, mb_hit_t *regs);
 void mb_apply_problematic_mask(const mb_idx_t *idx, int32_t n_regs, mb_hit_t *regs, int32_t mapq_cap);
+
+// defined in unmap.c
+mb_unmap_regions_t *mb_unmap_regions_load(const char *fn, const l2b_t *l2b);
+void mb_unmap_regions_destroy(mb_unmap_regions_t *r);
+int32_t mb_unmap_hit_max_depth(const mb_unmap_regions_t *r, const mb_hit_t *h);
+void mb_apply_unmap_regions(const mb_unmap_regions_t *r, int32_t n_hit, mb_hit_t *hit);
 
 mb_hit_t *mb_map_sai(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, const char *seq, l2b_meth_t mt, mb_sai_v *u, int32_t *n_hit_, mb_tbuf_t *b, const char *qname);
 mb_hit_t *mb_map_sai4(const mb_opt_t *opt, const mb_idx_t *idx, int64_t qlen, const uint8_t *seq, l2b_meth_t mt, mb_sai_v *u, int32_t *n_hit_, mb_tbuf_t *b, const char *qname);
