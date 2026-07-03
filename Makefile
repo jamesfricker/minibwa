@@ -83,7 +83,7 @@ endif
 
 DEPS := $(LIB_OBJS:.o=.d) $(APP_OBJS:.o=.d) $(MAIN_OBJ:.o=.d) $(MIMALLOC_OBJ:.o=.d)
 
-.PHONY: all clean examples
+.PHONY: all clean examples test
 
 all: $(PROG)
 
@@ -95,6 +95,9 @@ $(PROG): $(LIB_TARGET) $(MIMALLOC_OBJ) $(APP_OBJS) $(MAIN_OBJ)
 
 examples: $(LIB_TARGET)
 	$(MAKE) -C examples
+
+test: $(PROG)
+	./bench/run-human-benchmark.py --out-dir .context/human-benchmark
 
 $(OBJ_DIR)/third_party/mimalloc/static.o: third_party/mimalloc/static.c
 	@mkdir -p $(dir $@)
