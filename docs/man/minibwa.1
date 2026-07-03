@@ -375,6 +375,34 @@ and
 The tags are derived from contig names and soft-masked reference intervals in
 the loaded index.
 .TP
+.BR --human-profile = \fISTR
+Enable a bundled human profile. The only supported value is
+.BR hmf-grch38 ,
+which discovers the standard Hartwig Medical Foundation (HMF)
+.B unmap_regions.38.tsv
+resource (searching the working directory,
+.BR MINIBWA_HMF_RESOURCES / HMF_RESOURCES / HMF_RESOURCE_DIR ,
+and the index-prefix directory) and annotates hits overlapping those regions.
+Use
+.B --unmap-regions
+to point at the file explicitly when auto-discovery fails []
+.TP
+.BR --unmap-regions = \fIFILE
+Load an HMF
+.B unmap_regions
+TSV (columns
+.BR Chromosome ,
+.BR PosStart ,
+.BR PosEnd ,
+.BR MaxDepth ;
+1-based inclusive coordinates) and annotate hits overlapping those regions with
+the
+.B ur:Z:unmap
+and
+.B ud:i
+tags. This only adds tags; it does not change read placement or mapping
+quality []
+.TP
 .B -y
 Copy FASTA/Q comments to output
 .TP
@@ -457,6 +485,8 @@ sb	Z	HMF SV-prep blacklist tag (HMF_SV_BLACKLIST)
 zc	Z	Human contig class when --human-tags is enabled
 zm	f	Unmasked alignment fraction when --human-tags is enabled
 zh	Z	Human confidence class when --human-tags is enabled
+ur	Z	Overlaps an HMF unmap region: unmap
+ud	i	Max depth of the overlapping HMF unmap region(s)
 .TE
 
 .SH PSEUDOAUTOSOMAL REGIONS
