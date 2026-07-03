@@ -98,12 +98,21 @@ minibwa map -ft8 ref.fa read.fa.gz          # map single-end or long reads; outp
 minibwa map --hic ref.fa hic1.fq hic2.fq    # map Hi-C short reads
 minibwa map --meth ref.fa read1.fq read2.fq # map BS-seq reads; requiring "index --meth"
 minibwa map --human ref.fa read1.fq read2.fq # ALT/HLA-aware SAM XA/SA tags
+minibwa map --human-tags ref.fa read1.fq read2.fq # add zc/zm/zh human tags
 ```
 With `--human` (or `-j` in the `mem` subcommand), the SAM `XA` and `SA` tags
 become aware of human ALT/HLA contigs: hits on ALT or HLA contigs that compete
 with a primary-assembly hit at the same query locus are reported as alternative
 placements in the `XA` tag instead of split-alignment `SA` tags. This only
 changes tag reporting; it does not otherwise alter read placement.
+
+With `--human-tags`, minibwa adds optional human annotations to each mapped SAM
+and PAF record: `zc:Z` gives the contig class inferred from the contig name
+(`primary`, `alt`, `hla`, `decoy`, `random`, `unplaced`, or `unknown`), `zm:f`
+gives the unmasked fraction of the alignment computed from soft-masked reference
+intervals, and `zh:Z` gives a confidence class (`high_confidence`,
+`low_mappability`, `non_primary`, or `unknown`). The SAM header describes these
+tags in `@CO` comment lines.
 
 Note in the default adaptive mode, `-g`/`-w`/`-W`/`-N`/`-m`/`-s` only changes
 the short-read setting; the long-read setting is fixed. This mode is disabled
