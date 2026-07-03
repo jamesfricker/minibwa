@@ -396,7 +396,8 @@ competes with a primary-assembly hit at the same query locus is reported in the
 .B XA
 tag as an alternative placement rather than as a split-alignment
 .B SA
-tag. This only affects tag reporting, not read placement.
+tag. Exact-score ties are also resolved toward primary human coordinates before
+ALT, HLA, decoy, random, unplaced, and viral/phix contigs.
 .TP
 .B --human-tags
 Output optional human reference annotations on mapped SAM and PAF records:

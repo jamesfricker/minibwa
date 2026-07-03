@@ -366,6 +366,116 @@ void mb_sync_high_cov(int32_t n, mb_hit_t *h)
 		h[i].frac_high = max_frac;
 }
 
+static int mb_ascii_lower(int c)
+{
+	return c >= 'A' && c <= 'Z'? c + ('a' - 'A') : c;
+}
+
+static int mb_str_eq_ci(const char *s, const char *t)
+{
+	int i;
+	if (s == 0 || t == 0) return 0;
+	for (i = 0; s[i] && t[i]; ++i)
+		if (mb_ascii_lower((unsigned char)s[i]) != mb_ascii_lower((unsigned char)t[i]))
+			return 0;
+	return s[i] == 0 && t[i] == 0;
+}
+
+static int mb_str_starts_ci(const char *s, const char *prefix)
+{
+	int i;
+	if (s == 0 || prefix == 0) return 0;
+	for (i = 0; prefix[i]; ++i)
+		if (s[i] == 0 || mb_ascii_lower((unsigned char)s[i]) != mb_ascii_lower((unsigned char)prefix[i]))
+			return 0;
+	return 1;
+}
+
+static int mb_str_contains_ci(const char *s, const char *needle)
+{
+	int i;
+	if (s == 0 || needle == 0 || needle[0] == 0) return 0;
+	for (; *s; ++s) {
+		for (i = 0; needle[i]; ++i)
+			if (s[i] == 0 || mb_ascii_lower((unsigned char)s[i]) != mb_ascii_lower((unsigned char)needle[i]))
+				break;
+		if (needle[i] == 0) return 1;
+	}
+	return 0;
+}
+
+static int mb_is_human_primary_name(const char *name)
+{
+	const char *p = name;
+	int n = 0;
+	if (p == 0) return 0;
+	if (mb_str_starts_ci(p, "chr")) p += 3;
+	if (p[0] >= '1' && p[0] <= '9') {
+		for (; *p >= '0' && *p <= '9'; ++p)
+			n = n * 10 + (*p - '0');
+		return *p == 0 && n >= 1 && n <= 22;
+	}
+	if ((p[0] == 'X' || p[0] == 'x' || p[0] == 'Y' || p[0] == 'y' || p[0] == 'M' || p[0] == 'm') && p[1] == 0)
+		return 1;
+	if ((p[0] == 'M' || p[0] == 'm') && (p[1] == 'T' || p[1] == 't') && p[2] == 0)
+		return 1;
+	return 0;
+}
+
+static int mb_human_contig_rank(const l2b_t *l2b, int64_t tid)
+{
+	const char *name, *comm;
+	if (l2b == 0 || tid < 0 || tid >= (int64_t)l2b->n_ctg) return 6;
+	name = l2b->ctg[tid].name;
+	comm = l2b->ctg[tid].comm;
+	if (mb_is_human_primary_name(name)) return 0;
+	if (mb_str_contains_ci(name, "_alt") || mb_str_contains_ci(name, "alt_") ||
+		mb_str_contains_ci(name, "alternate") || mb_str_contains_ci(comm, "alternate locus") ||
+		mb_str_contains_ci(comm, "alt-scaffold") || mb_str_contains_ci(comm, "alt scaffold"))
+		return 2;
+	if (mb_str_contains_ci(name, "hla") || mb_str_contains_ci(comm, "hla") ||
+		mb_str_contains_ci(name, "mhc") || mb_str_contains_ci(comm, "mhc"))
+		return 3;
+	if (mb_str_contains_ci(name, "phix") || mb_str_contains_ci(name, "phi-x") ||
+		mb_str_contains_ci(name, "virus") || mb_str_contains_ci(name, "viral"))
+		return 5;
+	if (mb_str_contains_ci(name, "decoy") || mb_str_eq_ci(name, "hs37d5") || mb_str_eq_ci(name, "hs38d1") ||
+		mb_str_starts_ci(name, "chrUn") || mb_str_contains_ci(name, "unplaced") ||
+		mb_str_contains_ci(name, "_random") || mb_str_contains_ci(name, "random") ||
+		mb_str_starts_ci(name, "GL") || mb_str_starts_ci(name, "KI") || mb_str_starts_ci(name, "JH") ||
+		mb_str_starts_ci(name, "KN") || mb_str_starts_ci(name, "NT") || mb_str_starts_ci(name, "NW"))
+		return 4;
+	return 6;
+}
+
+static inline int mb_hit_sort_score(const mb_hit_t *r)
+{
+	return r->p? r->p->dp_max : r->score;
+}
+
+void mb_human_sort_ties(void *km, const l2b_t *l2b, int32_t n, mb_hit_t *r)
+{
+	int32_t st, en, i, k;
+	mb_hit_t *tmp;
+	if (n <= 1 || l2b == 0 || r == 0) return;
+	tmp = Kmalloc(km, mb_hit_t, n);
+	for (st = 0; st < n; st = en) {
+		int32_t score = mb_hit_sort_score(&r[st]);
+		en = st + 1;
+		while (en < n && mb_hit_sort_score(&r[en]) == score) ++en;
+		if (en - st <= 1) continue;
+		for (i = st; i < en; ++i) {
+			int rank = mb_human_contig_rank(l2b, r[i].tid);
+			for (k = i; k > st && mb_human_contig_rank(l2b, tmp[k - 1].tid) > rank; --k)
+				tmp[k] = tmp[k - 1];
+			tmp[k] = r[i];
+		}
+		for (i = st; i < en; ++i)
+			r[i] = tmp[i];
+	}
+	kfree(km, tmp);
+}
+
 mb_hit_t *mb_gen_hit(void *km, uint32_t hash, int qlen, const l2b_t *l2b, int n_u, uint64_t *u, mb_anchor_t *a)
 { // convert chains to hits
 	mb128_t *z, tmp;
@@ -924,6 +1034,8 @@ static mb_hit_t *mb_map_sai_core(const mb_opt_t *opt, const mb_idx_t *idx, int64
 	// chain ordering
 	hit = mb_gen_hit(b->km, hash, qlen, idx->l2b, n_hit, w, a);
 	kfree(b->km, w);
+	if (opt->flag & MB_F_HUMAN_ALT)
+		mb_human_sort_ties(b->km, idx->l2b, n_hit, hit);
 	mb_mark_par_hits(idx->l2b, n_hit, hit);
 	mb_set_parent(b->km, idx->l2b, opt->mask_level, opt->mask_len, n_hit, hit, sub_diff, 0);
 	mb_par_resolve(idx->l2b, n_hit, hit, sub_diff);
@@ -932,6 +1044,8 @@ static mb_hit_t *mb_map_sai_core(const mb_opt_t *opt, const mb_idx_t *idx, int64
 	// base alignment
 	if (!(opt->flag & MB_F_NO_ALN)) {
 		hit = mb_align_skeleton(b->km, opt, idx, qlen, seq, mt, &n_hit, hit, a);
+		if (opt->flag & MB_F_HUMAN_ALT)
+			mb_human_sort_ties(b->km, idx->l2b, n_hit, hit);
 		mb_mark_par_hits(idx->l2b, n_hit, hit);
 		mb_set_parent(b->km, idx->l2b, opt->mask_level, opt->mask_len, n_hit, hit, sub_diff, 0);
 		mb_par_resolve(idx->l2b, n_hit, hit, sub_diff);
