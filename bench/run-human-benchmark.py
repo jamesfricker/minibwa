@@ -213,7 +213,9 @@ def index_file(prefix: Path) -> Path:
     return Path(str(prefix) + ".mbw")
 
 
-def validate(metrics: dict[str, object], alignments: list[Alignment], expectations: list[dict[str, object]]) -> list[str]:
+def validate(
+    metrics: dict[str, object], alignments: list[Alignment], expectations: list[dict[str, object]]
+) -> list[str]:
     failures: list[str] = []
     primary_by_read = {aln.name: aln for aln in alignments if aln.primary}
     if float(metrics["alignment_rate"]) < 0.99:
