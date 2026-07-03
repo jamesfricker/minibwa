@@ -61,6 +61,12 @@ append_minibwa_timing "index_reference" "$TMP/index.err" "ref=$REF_FASTA"
 ./minibwa map "$INDEX_PREFIX" "$READ1" "$READ2" >"$TMP/aln.sam" 2>"$TMP/map.err"
 append_minibwa_timing "map_paired_sam" "$TMP/map.err" "reads=$READ1,$READ2 sam_bytes=$(wc -c < "$TMP/aln.sam" | tr -d ' ')"
 
+./minibwa map "$INDEX_PREFIX" "$READ1" >"$TMP/aln-single-default.sam" 2>"$TMP/map-single-default.err"
+append_minibwa_timing "map_single_sam_default" "$TMP/map-single-default.err" "reads=$READ1 sam_bytes=$(wc -c < "$TMP/aln-single-default.sam" | tr -d ' ')"
+
+./minibwa map --single-end "$INDEX_PREFIX" "$READ1" >"$TMP/aln-single-fast.sam" 2>"$TMP/map-single-fast.err"
+append_minibwa_timing "map_single_sam_fast" "$TMP/map-single-fast.err" "reads=$READ1 option=--single-end sam_bytes=$(wc -c < "$TMP/aln-single-fast.sam" | tr -d ' ')"
+
 for kind in 2a sa msa; do
 	./minibwa bench -b "$kind" -n "$BENCH_ITERATIONS" "$INDEX_FILE" >/dev/null 2>"$TMP/bench-$kind.err"
 	append_bwt_timing "bwt_${kind}_${BENCH_ITERATIONS}" "$TMP/bench-$kind.err" "index=$INDEX_FILE"

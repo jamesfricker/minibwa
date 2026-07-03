@@ -117,6 +117,7 @@ By default, minibwa dynamically changes multiple internal parameters based on
 individual read lengths. It works for both short and accurate long reads.
 ```sh
 minibwa map -t8 ref.fa read1.fq read2.fq    # map paired-end reads and output SAM
+minibwa map --single-end -t8 ref.fa read.fq # map R1-only/single-end short reads without pairing work
 minibwa map -ft8 ref.fa read.fa.gz          # map single-end or long reads; output PAF
 minibwa map --hic ref.fa hic1.fq hic2.fq    # map Hi-C short reads
 minibwa map --meth ref.fa read1.fq read2.fq # map BS-seq reads; requiring "index --meth"
@@ -124,6 +125,11 @@ minibwa map --human ref.fa read1.fq read2.fq # ALT/HLA-aware SAM XA/SA tags
 minibwa map --human-tags ref.fa read1.fq read2.fq # add zc/zm/zh human tags
 minibwa map --numt ref.fa read.fq           # cap/tag ambiguous chrM-vs-nuclear hits
 ```
+Use `--single-end` (equivalent to `-P`) for R1-only or other confirmed
+single-end short-read inputs when pairing and mate rescue are not needed. This
+keeps the same read mapping behavior while skipping paired-end statistics,
+pair selection, and mate rescue work.
+
 With `--human` (or `-j` in the `mem` subcommand), the SAM `XA` and `SA` tags
 become aware of human ALT/HLA contigs: hits on ALT or HLA contigs that compete
 with a primary-assembly hit at the same query locus are reported as alternative
@@ -223,7 +229,8 @@ paper/manpage sources in [docs](docs).
 
 The [bench/](bench/) directory contains helper scripts for measuring mapping
 performance. `bench/run-local-bench.sh [out.tsv]` builds minibwa, times indexing,
-paired-end mapping, and the `bench` subcommand, then writes a TSV of timings
+paired-end mapping, R1-only mapping with and without `--single-end`, and the
+`bench` subcommand, then writes a TSV of timings
 (default `.context/local-bench.tsv`). It uses the bundled `tests/data` inputs by
 default; set `REF_FASTA`, `READ1`, `READ2`, or `BENCH_ITERATIONS` to benchmark
 other data.
@@ -232,6 +239,11 @@ host, rebuilds there, and optionally times the `bench` subcommand when
 `BENCH_INDEX` points at a remote `.mbw` index. `REMOTE_BASE`, `REMOTE_WORK`,
 `BENCH_ITERATIONS`, and `LOCAL_LOG` customize paths and run size; logs are
 written under `.context/` by default.
+`bench/compare-upstream.sh` clones/builds `https://github.com/lh3/minibwa`,
+checks that shared paired-end and single-end SAM bodies match after ignoring the
+`@PG` command line, and runs repeated timing comparisons. Set `REPEAT` and
+`SLOWDOWN_LIMIT` to tune the performance gate, or run the same check with
+`make upstream-compare`.
 `bench/run-human-benchmark.py` adds a human-focused QA harness. With no inputs it
 generates a small GRCh38-shaped synthetic fixture covering primary, HLA-like,
 alternate, decoy, and low-mappability placements; `make test` runs this CI-sized

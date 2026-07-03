@@ -358,6 +358,7 @@ static ko_longopt_t long_options[] = {
 	{ "mapq-mappability", ko_required_argument, 322 },
 	{ "mapq-low-cap",     ko_required_argument, 323 },
 	{ "numt",         ko_no_argument,       324 },
+	{ "single-end",   ko_no_argument,       325 },
 	{ "dbg-aln-seq",  ko_no_argument,       601 },
 	{ "dbg-anchor",   ko_no_argument,       602 },
 	{ "dbg-seed",     ko_no_argument,       603 },
@@ -416,7 +417,7 @@ static int usage_map(FILE *fp, const mb_opt_t *opt)
 	fprintf(fp, "    -E INT1[,INT2]   gap extension penalty [%d,%d]\n", opt->e, opt->e2);
 	fprintf(fp, "    -s INT           suppress alignment with DP score lower than INT*{-A} [%d]\n", opt->min_dp_max);
 	fprintf(fp, "  Paired-end:\n");
-	fprintf(fp, "    -P               skip pairing and mate rescue\n");
+	fprintf(fp, "    -P, --single-end skip pairing and mate rescue; recommended for R1-only/single-end reads\n");
 	fprintf(fp, "    --rescue=INT     mate rescue for up to INT candidates; 0 to skip rescue [%d]\n", opt->max_rescue);
 	fprintf(fp, "  Input/Output:\n");
 	fprintf(fp, "    -o FILE          output file name [stdout]\n");
@@ -616,6 +617,8 @@ int main_map(int argc, char *argv[])
 			if (mo.mapq_low_cap > 60) mo.mapq_low_cap = 60;
 		} else if (c == 324) { // --numt
 			mo.flag |= MB_F_NUMT;
+		} else if (c == 325) { // --single-end
+			mo.flag |= MB_F_NO_PAIRING;
 		} else if (c == 601) { // --dbg-aln-seq
 			kom_dbg_flag |= MB_DBG_ALN_SEQ;
 		} else if (c == 602) { // --dbg-anchor
