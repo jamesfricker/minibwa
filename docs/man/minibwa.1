@@ -75,6 +75,8 @@ structural changes anyway.
 .IR nThreads ]
 .RB [ --meth ]
 .RB [ --human ]
+.RB [ --human-resources
+.IR dir-or-tar.gz ]
 .I ref.fa
 .RI [ idxPrefix ]
 
@@ -116,6 +118,14 @@ Prevent seed anchors from crossing ambiguous reference bases. This mode is
 intended for human clinical indexes where artificial seeds inside randomized
 .B N
 runs are undesirable.
+.TP
+.BI --human-resources \ DIR|TAR.GZ
+Import HMF human resources from an extracted directory or hmftools tarball and
+write
+.IR idxPrefix .hmf.tsv
+with per-resource record counts, covered bases, checksums, and genome-build
+metadata. The importer refuses known GRCh37 resources for a detected GRCh38
+index, and vice versa.
 
 .SH THE MAP COMMAND
 .SS Summary
@@ -136,6 +146,13 @@ If the index records soft-masked (lowercase) intervals, minibwa drops
 high-occurrence anchors that fall entirely within a soft-masked interval during
 seeding and caps the mapping quality at 10 when most of an alignment's reference
 span is soft-masked. An index with no soft-masked bases is unaffected.
+
+If the index has an
+.IR idxPrefix .hmf.tsv
+sidecar written by
+.BR "index --human-resources" ,
+minibwa warns when its recorded resource build disagrees with the detected
+index build but otherwise maps normally.
 
 .SS Common Options
 .TP 10

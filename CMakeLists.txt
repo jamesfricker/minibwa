@@ -32,6 +32,7 @@ set(MINIBWA_LIB_SOURCES
 	src/sv_blacklist.c
 	src/cs.c
 	src/format.c
+	src/human_resources.c
 	src/ksw2_extz2_sse.c
 	src/ksw2_extd2_sse.c
 	src/ksw2_ll_sse.c

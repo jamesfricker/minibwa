@@ -4,6 +4,7 @@
 #include "libsais.h"
 #include "libsais64.h"
 #include "kommon.h"
+#include "human_resources.h"
 #include "ketopt.h"
 #include "mbpriv.h"
 
@@ -13,6 +14,7 @@ static ko_longopt_t long_opts[] = { // common long options shared across all ind
 	{ "help", ko_no_argument, 901 },
 	{ "meth", ko_no_argument, 902 },
 	{ "human", ko_no_argument, 903 },
+	{ "human-resources", ko_required_argument, 904 },
 	{ 0, 0, 0 }
 };
 
@@ -275,6 +277,8 @@ static int usage_index(FILE *fp, uint64_t seed, int sa_bit, int n_thread)
 #endif
 	fprintf(fp, "  --meth    build FM-index for BS-seq mapping\n");
 	fprintf(fp, "  --human   prevent seeding through ambiguous reference bases\n");
+	fprintf(fp, "  --human-resources DIR|TAR.GZ\n");
+	fprintf(fp, "            import HMF human resource BED/TSV files into <prefix>.hmf.tsv\n");
 	fprintf(fp, "  --help    print this help message\n");
 	return fp == stdout? 0 : 1;
 }
@@ -285,7 +289,7 @@ int main_index(int argc, char *argv[])
 	int c, low_mem = 0, n_thread = 4, sa_bit = 4, is_meth = 0, human_mode = 0;
 	int64_t block_size = 10000000;
 	uint64_t seed = 11;
-	char *prefix, *fn_l2b, *fn_bwt, *fn_meth_bwt = 0;
+	char *prefix, *fn_l2b, *fn_bwt, *fn_meth_bwt = 0, *fn_human_resources = 0;
 	l2b_t *l2b;
 	mb_bwt_t *bwt;
 
@@ -298,6 +302,7 @@ int main_index(int argc, char *argv[])
 		else if (c == 901) return usage_index(stdout, seed, sa_bit, n_thread);
 		else if (c == 902) is_meth = 1;
 		else if (c == 903) human_mode = 1;
+		else if (c == 904) fn_human_resources = o.arg;
 	}
 #ifndef USE_GPL
 	(void)block_size;
@@ -317,6 +322,8 @@ int main_index(int argc, char *argv[])
 	l2b = l2b_import(argv[o.ind], seed);
 	kom_assert(l2b, "failed to read the genome FASTA.");
 	if (human_mode) l2b->flag |= L2B_F_NO_AMBI_SEED;
+	if (fn_human_resources && mb_human_resources_import(fn_human_resources, prefix, l2b) < 0)
+		return 1;
 	if (low_mem) {
 #ifdef USE_GPL
 		l2b_save_pac(fn_l2b, l2b, 1);

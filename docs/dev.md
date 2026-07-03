@@ -94,3 +94,11 @@ Similarity to minimap2:
    which has no room to store the flag.
 
  * Minibwa natively aligns directional BS-seq reads.
+
+ * With `index --human-resources`, minibwa imports HMF human resource BED/TSV
+   files from an extracted directory or hmftools tarball (including nested
+   `.bed.gz`) and writes an `<prefix>.hmf.tsv` sidecar with per-resource record
+   counts, covered bases, FNV-1a checksums, and genome-build metadata
+   (`mb_human_resources_import`). It rejects GRCh37/GRCh38 build mismatches at
+   import time, and `map` warns when a loaded index disagrees with the sidecar
+   build (`mb_human_resources_warn_mismatch`).
