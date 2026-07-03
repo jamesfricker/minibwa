@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 #include "mbpriv.h"
 #include "kalloc.h"
@@ -45,6 +46,7 @@ end_idx_load:
 void mb_idx_destroy(mb_idx_t *idx)
 {
 	if (idx == 0) return;
+	mb_idx_clear_sv_blacklist(idx);
 	mb_bwt_destroy(idx->bwt);
 	l2b_destroy(idx->l2b);
 	free(idx);
@@ -655,6 +657,7 @@ static mb_hit_t *mb_map_sai_core(const mb_opt_t *opt, const mb_idx_t *idx, int64
 		if (hit[i].seed_ratio == 0) hit[i].seed_ratio = 1;
 	}
 	mb_set_mapq(b->km, idx->l2b, qlen, n_hit, hit, opt->min_chain_score, opt->a, is_sr, opt->max_sr_len, opt->mask_level);
+	mb_apply_sv_blacklist(idx, opt, n_hit, hit);
 
 	// clean up
 	kfree(b->km, a);
@@ -773,6 +776,8 @@ mb_hit_t **mb_map_batch(const mb_opt_t *opt, const mb_idx_t *idx, int32_t n_seq,
 			int32_t len2[2] = { qlen[i], qlen[i+1] };
 			char *seq2[2] = { (char*)seq[i], (char*)seq[i+1] };
 			mb_pair(km, opt, idx->l2b, &n_hit[i], &hit[i], pes, len2, seq2);
+			mb_apply_sv_blacklist(idx, opt, n_hit[i], hit[i]);
+			mb_apply_sv_blacklist(idx, opt, n_hit[i+1], hit[i+1]);
 		}
 	}
 

@@ -31,6 +31,7 @@ void mb_fmt_paf(kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, const mb_hi
 		p->mlen, p->blen, p->mapq, p->parent == p->id? 'P' : 'S', p->score, p->cnt);
 	if (p->par) kom_sprintf_lite(s, "\tpa:Z:%s", mb_par_name(p->par));
 	if (p->parent == p->id) kom_sprintf_lite(s, "\ts2:i:%d", p->subsc >= 0? p->subsc : 0);
+	if (p->sv_blacklist) kom_sprintf_lite(s, "\tsb:Z:HMF_SV_BLACKLIST");
 	if (p->p) {
 		write_tags(s, p);
 		if (p->p->n_cigar > 0) {
@@ -382,6 +383,7 @@ void mb_fmt_sam(void *km, kstring_t *s, const l2b_t *l2b, const mb_bseq1_t *t, i
 	if (r) {
 		write_tags(s, r);
 		if (r->par) kom_sprintf_lite(s, "\tpa:Z:%s", mb_par_name(r->par));
+		if (r->sv_blacklist) kom_sprintf_lite(s, "\tsb:Z:HMF_SV_BLACKLIST");
 		// MC:Z mate CIGAR and MQ:i mate MAPQ; r_next is the mate's primary (see above).
 		if (n_seg > 1 && r_next && r_next->p && r_next->p->n_cigar > 0 && mate_qlen > 0) {
 			kom_sprintf_lite(s, "\tMC:Z:");
